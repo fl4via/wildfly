@@ -64,6 +64,13 @@ public class ClusterBarrierResourceDefinition extends SimpleResourceDefinition {
     }
 
     @Override
+    public void registerOperations(ManagementResourceRegistration resourceRegistration) {
+        super.registerOperations(resourceRegistration);
+        resourceRegistration.registerOperationHandler(ClusterBarrierElect.OPERATION_DEFINITION,
+                ClusterBarrierElect.INSTANCE, false);
+    }
+
+    @Override
     public void registerAttributes(ManagementResourceRegistration resourceRegistration) {
         resourceRegistration.registerReadWriteAttribute(FULFILLS, null,
                 new AbstractWriteAttributeHandler<Void>() {
@@ -89,6 +96,5 @@ public class ClusterBarrierResourceDefinition extends SimpleResourceDefinition {
 
     public static final ServiceName getBarrierRequirementServiceName(String barrierRequirement) {
         return BARRIER_NAME.append(barrierRequirement);
-
     }
 }
