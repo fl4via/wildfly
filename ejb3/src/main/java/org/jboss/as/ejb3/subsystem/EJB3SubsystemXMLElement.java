@@ -91,6 +91,7 @@ public enum EJB3SubsystemXMLElement {
     THREAD_POOLS("thread-pools"),
     TIMER_SERVICE("timer-service"),
     LOG_SYSTEM_EXCEPTIONS(EJB3SubsystemModel.LOG_SYSTEM_EXCEPTIONS),
+    CLUSTER_BARRIER("cluster-barrier"),
     ;
 
     private final String name;

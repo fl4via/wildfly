@@ -53,7 +53,7 @@ public class EJB3SubsystemXMLPersister implements XMLElementWriter<SubsystemMars
     @Override
     public void writeContent(final XMLExtendedStreamWriter writer, final SubsystemMarshallingContext context) throws XMLStreamException {
 
-        context.startSubsystemElement(EJB3SubsystemNamespace.EJB3_3_0.getUriString(), false);
+        context.startSubsystemElement(EJB3SubsystemNamespace.EJB3_3_1.getUriString(), false);
 
         writeElements(writer,  context);
 
@@ -259,6 +259,10 @@ public class EJB3SubsystemXMLPersister implements XMLElementWriter<SubsystemMars
             writer.writeStartElement(EJB3SubsystemXMLElement.LOG_SYSTEM_EXCEPTIONS.getLocalName());
             writer.writeAttribute(EJB3SubsystemXMLAttribute.VALUE.getLocalName(), model.get(EJB3SubsystemModel.LOG_SYSTEM_EXCEPTIONS).asString());
             writer.writeEndElement();
+        }
+
+        if (model.hasDefined(SERVICE) && model.get(SERVICE).has(CLUSTER_BARRIER)) {
+            writer.writeEmptyElement(EJB3SubsystemXMLElement.CLUSTER_BARRIER.getLocalName());
         }
     }
 

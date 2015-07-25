@@ -96,6 +96,8 @@ public interface EJB3SubsystemModel {
     String CACHE = "cache";
     String PASSIVATION_STORE = "passivation-store";
 
+    String CLUSTER_BARRIER = "cluster-barrier";
+
     @Deprecated String FILE_PASSIVATION_STORE = "file-passivation-store";
     @Deprecated String IDLE_TIMEOUT = "idle-timeout";
     @Deprecated String IDLE_TIMEOUT_UNIT = "idle-timeout-unit";
@@ -128,6 +130,7 @@ public interface EJB3SubsystemModel {
     PathElement IIOP_PATH = PathElement.pathElement(SERVICE, IIOP);
     PathElement FILE_DATA_STORE_PATH = PathElement.pathElement(FILE_DATA_STORE);
     PathElement DATABASE_DATA_STORE_PATH = PathElement.pathElement(DATABASE_DATA_STORE);
+    PathElement CLUSTER_BARRIER_PATH = PathElement.pathElement(SERVICE, CLUSTER_BARRIER);
 
     ServiceName BASE_THREAD_POOL_SERVICE_NAME = ThreadsServices.EXECUTOR.append("ejb3");
 }
