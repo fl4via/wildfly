@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2011, Red Hat, Inc., and individual contributors
+ * Copyright 2015, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -22,30 +22,32 @@
 
 package org.jboss.as.ejb3.clustering;
 
-import org.jboss.metadata.ejb.parser.jboss.ejb3.AbstractEJBBoundMetaData;
+import org.jboss.msc.service.Service;
+import org.jboss.msc.service.ServiceName;
+import org.jboss.msc.service.StartContext;
+import org.jboss.msc.service.StartException;
+import org.jboss.msc.service.StopContext;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import static org.jboss.as.ejb3.logging.EjbLogger.ROOT_LOGGER;
 
 /**
- * @author Jaikiran Pai
+ * A service installed as a sinleton, it is UP only on the master node of a the singleton barrier.
+ *
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  */
-public class EJBBoundClusteringMetaData extends AbstractEJBBoundMetaData {
-    private static final long serialVersionUID = 509813132897569188L;
+public class SingletonBarrierService implements Service<String> {
+    public static final ServiceName SERVICE_NAME = ServiceName.parse("ejb3.cluster.barrier.singleton");
 
-    private List<String> barriers = new ArrayList();
-
-    public void addBarrier(String barrier) {
-        barriers.add(barrier);
+    public void start(StartContext context) throws StartException {
+        ROOT_LOGGER.info("this node is now considered the active cluster singleton");
     }
 
-    public Collection<String> getBarriers() {
-        return barriers;
+    public void stop(StopContext context) {
+        ROOT_LOGGER.info("this node is no longer considered the active cluster singleton");
     }
 
-    public boolean hasBarrier() {
-        return !barriers.isEmpty();
+    @Override
+    public String getValue() {
+        return "singleton barrier";
     }
 }

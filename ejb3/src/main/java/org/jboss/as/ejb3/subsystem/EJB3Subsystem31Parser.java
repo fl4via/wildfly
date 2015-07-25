@@ -59,6 +59,27 @@ public class EJB3Subsystem31Parser extends EJB3Subsystem30Parser {
     }
 
     @Override
+    protected void readElement(final XMLExtendedStreamReader reader, final EJB3SubsystemXMLElement element, final List<ModelNode> operations, final ModelNode ejb3SubsystemAddOperation) throws XMLStreamException {
+        switch (element) {
+            case CLUSTER_BARRIER: {
+                parseClusterBarrier(reader, operations);
+                break;
+            }
+            default: {
+                super.readElement(reader, element, operations, ejb3SubsystemAddOperation);
+            }
+        }
+    }
+
+    private void parseClusterBarrier(final XMLExtendedStreamReader reader, final List<ModelNode> operations) throws XMLStreamException {
+        operations.add(Util.createAddOperation(SUBSYSTEM_PATH.append(EJB3SubsystemModel.CLUSTER_BARRIER_PATH)));
+
+        if (reader.nextTag() != XMLStreamConstants.END_ELEMENT) {
+            throw unexpectedElement(reader);
+        }
+    }
+
+    @Override
     protected void parseMDB(final XMLExtendedStreamReader reader, List<ModelNode> operations, final ModelNode ejb3SubsystemAddOperation) throws XMLStreamException {
         // no attributes expected
         requireNoAttributes(reader);

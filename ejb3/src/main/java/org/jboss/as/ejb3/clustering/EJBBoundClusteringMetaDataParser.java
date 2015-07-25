@@ -24,21 +24,23 @@ package org.jboss.as.ejb3.clustering;
 
 import org.jboss.as.ejb3.logging.EjbLogger;
 import org.jboss.metadata.ejb.parser.jboss.ejb3.AbstractEJBBoundMetaDataParser;
+import org.jboss.metadata.property.PropertyReplacer;
 
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
-
-import org.jboss.metadata.property.PropertyReplacer;
 
 /**
  * Parses the urn:clustering namespace elements for clustering related metadata on EJBs.
  *
  * @author Jaikiran Pai
+ * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  */
 public class EJBBoundClusteringMetaDataParser extends AbstractEJBBoundMetaDataParser<EJBBoundClusteringMetaData> {
 
     public static final String NAMESPACE_URI = "urn:clustering:1.0";
     private static final String ROOT_ELEMENT_CLUSTERING = "clustering";
+    private static final String BARRIER_ELEMENT =  "barrier";
+    private static final String DEPENDS_ELEMENT =  "depends";
 
     @Override
     public EJBBoundClusteringMetaData parse(final XMLStreamReader xmlStreamReader, final PropertyReplacer propertyReplacer) throws XMLStreamException {
@@ -59,6 +61,23 @@ public class EJBBoundClusteringMetaDataParser extends AbstractEJBBoundMetaDataPa
             final String localName = reader.getLocalName();
             if (localName.equals("clustered")) {
                 getElementText(reader, propertyReplacer);
+            } else if (localName.equals(BARRIER_ELEMENT)){
+                if (reader.hasNext()) {
+                    if (reader.nextTag() == END_ELEMENT) {
+                        metaData.addBarrier(SingletonBarrierService.SERVICE_NAME.append("service" ).getCanonicalName());
+                    } else do {
+                            if (reader.getLocalName().equals(DEPENDS_ELEMENT)){
+                                // TODO check if element text is not empty
+                                metaData.addBarrier(getElementText(reader, propertyReplacer));
+                                if (reader.nextTag() != END_ELEMENT) {
+                                    throw unexpectedElement(reader);
+                                }
+                            } else {
+                                throw unexpectedElement(reader);
+                            }
+                        } while (reader.hasNext() && reader.nextTag() != END_ELEMENT);
+                    }
+                //reader.nextTag();// read END_ELEMENT
             } else {
                 throw unexpectedElement(reader);
             }

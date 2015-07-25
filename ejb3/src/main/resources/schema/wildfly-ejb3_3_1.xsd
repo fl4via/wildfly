@@ -61,6 +61,7 @@
             <xs:element name="disable-default-ejb-permissions" type="disable-default-ejb-permissionsType" minOccurs="0" maxOccurs="1" />
             <xs:element name="statistics" type="statisticsType" minOccurs="0" maxOccurs="1"/>
             <xs:element name="log-system-exceptions" type="log-system-exceptionsType" minOccurs="0" maxOccurs="1"/>
+            <xs:element name="cluster-barrier" minOccurs="0" maxOccurs="1"/>
         </xs:all>
     </xs:complexType>
 
