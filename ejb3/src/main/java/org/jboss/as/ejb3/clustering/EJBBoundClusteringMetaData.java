@@ -24,28 +24,22 @@ package org.jboss.as.ejb3.clustering;
 
 import org.jboss.metadata.ejb.parser.jboss.ejb3.AbstractEJBBoundMetaData;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
 /**
  * @author Jaikiran Pai
  * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
  */
 public class EJBBoundClusteringMetaData extends AbstractEJBBoundMetaData {
-    private static final long serialVersionUID = 509813132897569188L;
+    private static final long serialVersionUID = 509813132897569189L;
 
-    private List<String> barriers = new ArrayList();
+    public static final String SINGLETON_BARRIER = "Singleton barrier";
 
-    public void addBarrier(String barrier) {
-        barriers.add(barrier);
+    private String barrier;
+
+    public void setBarrier(String barrier) {
+        this.barrier = barrier;
     }
 
-    public Collection<String> getBarriers() {
-        return barriers;
-    }
-
-    public boolean hasBarrier() {
-        return !barriers.isEmpty();
+    public String getBarrier() {
+        return barrier;
     }
 }

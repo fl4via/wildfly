@@ -26,11 +26,11 @@ import org.jboss.as.controller.operations.common.Util;
 import org.jboss.dmr.ModelNode;
 import org.jboss.staxmapper.XMLExtendedStreamReader;
 
-import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
 import java.util.List;
 
-import static org.jboss.as.controller.parsing.ParseUtils.unexpectedElement;
+import static org.jboss.as.controller.parsing.ParseUtils.requireNoContent;
+import static org.jboss.as.controller.parsing.ParseUtils.unexpectedAttribute;
 
 /**
  * Parser for ejb3:3.1 namespace.
@@ -63,10 +63,21 @@ public class EJB3Subsystem31Parser extends EJB3Subsystem30Parser {
     }
 
     protected void parseClusterBarrier(final XMLExtendedStreamReader reader, final List<ModelNode> operations) throws XMLStreamException {
-        operations.add(Util.createAddOperation(SUBSYSTEM_PATH.append(EJB3SubsystemModel.CLUSTER_BARRIER_PATH)));
-
-        if (reader.nextTag() != XMLStreamConstants.END_ELEMENT) {
-            unexpectedElement(reader);
+        ModelNode addOperation = Util.createAddOperation(SUBSYSTEM_PATH.append(EJB3SubsystemModel.CLUSTER_BARRIER_PATH));
+        int attributesCount = reader.getAttributeCount();
+        if (attributesCount > 0) {
+            for (int i = 0; i < attributesCount; i++) {
+                final EJB3SubsystemXMLAttribute attribute = EJB3SubsystemXMLAttribute.forName(reader.getAttributeLocalName(i));
+                switch (attribute) {
+                    case FULFILLS:
+                        ClusterBarrierResourceDefinition.FULFILLS.parseAndSetParameter(reader.getAttributeValue(i), addOperation, reader);
+                        break;
+                    default:
+                        throw unexpectedAttribute(reader, i);
+                }
+            }
         }
+        requireNoContent(reader);
+        operations.add(addOperation);
     }
 }

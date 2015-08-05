@@ -27,7 +27,6 @@ import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.ServiceRemoveStepHandler;
 import org.jboss.as.controller.logging.ControllerLogger;
-import org.jboss.as.ejb3.clustering.SingletonBarrierService;
 import org.jboss.dmr.ModelNode;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
@@ -42,19 +41,30 @@ public class ClusterBarrierRemove extends ServiceRemoveStepHandler {
     public static final ClusterBarrierRemove INSTANCE = new ClusterBarrierRemove();
 
     private ClusterBarrierRemove() {
-        super(SingletonBarrierService.SERVICE_NAME, ClusterBarrierAdd.INSTANCE);
-    }
-    @Override
-    protected void performRuntime(OperationContext context, ModelNode operation, ModelNode model) {
-        context.removeService(SingletonBarrierService.SERVICE_NAME);
+        super(ClusterBarrierResourceDefinition.BASIC_CAPABILITY.getCapabilityServiceName(), ClusterBarrierAdd.INSTANCE, ClusterBarrierResourceDefinition.BASIC_CAPABILITY);
     }
 
     @Override
-    protected void recoverServices(final OperationContext context, final ModelNode operation, final ModelNode profileNode)
+    protected void performRuntime(OperationContext context, ModelNode operation, ModelNode model) /* throws OperationFailedException*/ {
+        final String fulfills;
+        try {
+            fulfills = ClusterBarrierResourceDefinition.FULFILLS.resolveModelAttribute(context, model).asString();
+        } catch (OperationFailedException e) {
+            // FIXME shouldn' t super class throw OperationFailedException
+            throw new RuntimeException(e);
+        }
+        if (fulfills != null) {
+            context.removeService(ClusterBarrierResourceDefinition.getBarrierRequirementServiceName(fulfills));
+        }
+        super.performRuntime(context, operation, model);
+    }
+
+    @Override
+    protected void recoverServices(final OperationContext context, final ModelNode operation, final ModelNode model)
             throws OperationFailedException {
         try {
             final PathAddress address = PathAddress.pathAddress(operation.require(OP_ADDR));
-            ClusterBarrierAdd.INSTANCE.installServices(context);
+            ClusterBarrierAdd.INSTANCE.installServices(context, model);
         } catch (OperationFailedException e) {
             throw ControllerLogger.ROOT_LOGGER.failedToRecoverServices(e);
         }

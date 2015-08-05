@@ -262,7 +262,9 @@ public class EJB3SubsystemXMLPersister implements XMLElementWriter<SubsystemMars
         }
 
         if (model.hasDefined(SERVICE) && model.get(SERVICE).has(CLUSTER_BARRIER)) {
-            writer.writeEmptyElement(EJB3SubsystemXMLElement.CLUSTER_BARRIER.getLocalName());
+            writer.writeStartElement(EJB3SubsystemXMLElement.CLUSTER_BARRIER.getLocalName());
+            ClusterBarrierResourceDefinition.FULFILLS.marshallAsAttribute(model.get(SERVICE, CLUSTER_BARRIER), writer);
+            writer.writeEndElement();
         }
     }
 
