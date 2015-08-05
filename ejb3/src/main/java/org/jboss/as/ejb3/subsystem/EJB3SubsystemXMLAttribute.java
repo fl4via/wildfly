@@ -94,7 +94,9 @@ public enum EJB3SubsystemXMLAttribute {
 
     VALUE("value"),
 
-    ACTIVE("active")
+    ACTIVE("active"),
+
+    FULFILLS("fulfills")
     ;
 
     private final String name;

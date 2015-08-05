@@ -40,7 +40,7 @@ public class EJBBoundClusteringMetaDataParser extends AbstractEJBBoundMetaDataPa
     public static final String NAMESPACE_URI = "urn:clustering:1.0";
     private static final String ROOT_ELEMENT_CLUSTERING = "clustering";
     private static final String BARRIER_ELEMENT =  "barrier";
-    private static final String DEPENDS_ELEMENT =  "depends";
+    private static final String REQUIRES_ATTRIBUTE =  "requires";
 
     @Override
     public EJBBoundClusteringMetaData parse(final XMLStreamReader xmlStreamReader, final PropertyReplacer propertyReplacer) throws XMLStreamException {
@@ -62,22 +62,17 @@ public class EJBBoundClusteringMetaDataParser extends AbstractEJBBoundMetaDataPa
             if (localName.equals("clustered")) {
                 getElementText(reader, propertyReplacer);
             } else if (localName.equals(BARRIER_ELEMENT)){
-                if (reader.hasNext()) {
-                    if (reader.nextTag() == END_ELEMENT) {
-                        metaData.addBarrier(SingletonBarrierService.SERVICE_NAME.append("service" ).getCanonicalName());
-                    } else do {
-                            if (reader.getLocalName().equals(DEPENDS_ELEMENT)){
-                                // TODO check if element text is not empty
-                                metaData.addBarrier(getElementText(reader, propertyReplacer));
-                                if (reader.nextTag() != END_ELEMENT) {
-                                    throw unexpectedElement(reader);
-                                }
-                            } else {
-                                throw unexpectedElement(reader);
-                            }
-                        } while (reader.hasNext() && reader.nextTag() != END_ELEMENT);
+                int attCount = reader.getAttributeCount();
+                if (attCount == 0) {
+                    metaData.setBarrier(EJBBoundClusteringMetaData.SINGLETON_BARRIER);
+                } else {
+                    for (int i = 0; i < attCount; i++) {
+                        if (reader.getAttributeLocalName(i).equals(REQUIRES_ATTRIBUTE)) {
+                            metaData.setBarrier(reader.getAttributeValue(i));
+                        } else unexpectedAttribute(reader, i);
                     }
-                //reader.nextTag();// read END_ELEMENT
+                }
+                reader.nextTag();// read END_ELEMENT
             } else {
                 throw unexpectedElement(reader);
             }

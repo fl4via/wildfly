@@ -30,6 +30,7 @@ import org.jboss.as.ejb3.clustering.MdbBarrierService;
 import org.jboss.as.ejb3.component.messagedriven.MessageDrivenComponent;
 import org.jboss.as.ejb3.component.messagedriven.MessageDrivenComponentDescription;
 import org.jboss.as.ejb3.deployment.EjbDeploymentAttachmentKeys;
+import org.jboss.as.ejb3.subsystem.ClusterBarrierResourceDefinition;
 import org.jboss.as.server.deployment.DeploymentPhaseContext;
 import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
@@ -45,6 +46,8 @@ import org.jboss.msc.service.ServiceName;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.jboss.as.ee.component.Attachments.EE_MODULE_CONFIGURATION;
 
 /**
  * Barrier DUP, disables automatic delivery of messages to MDBs associated with a barrier, and create an
@@ -73,7 +76,7 @@ public class BarrierProcessor implements DeploymentUnitProcessor {
     public void deploy(DeploymentPhaseContext phaseContext) throws DeploymentUnitProcessingException {
         final DeploymentUnit deploymentUnit = phaseContext.getDeploymentUnit();
         final EEModuleConfiguration moduleConfiguration = deploymentUnit.getAttachment(
-                org.jboss.as.ee.component.Attachments.EE_MODULE_CONFIGURATION);
+                EE_MODULE_CONFIGURATION);
         if (moduleConfiguration == null) {
             return;
         }
@@ -87,8 +90,8 @@ public class BarrierProcessor implements DeploymentUnitProcessor {
             ComponentDescription description = configuration.getComponentDescription();
             if (description instanceof MessageDrivenComponentDescription) {
                 final MessageDrivenComponentDescription mdbDescription = (MessageDrivenComponentDescription) description;
-                final List<ServiceName> barrierDependencies = getBarrierDependencies(clusteringMetaData, mdbDescription);
-                if (!barrierDependencies.isEmpty()) {
+                final String barrier = getBarrier(clusteringMetaData, mdbDescription);
+                if (barrier != null) {
                     //set deliveryActive to false for this case as it will be
                     //controlled via the dependencies
                     mdbDescription.setDeliveryActive(false);
@@ -102,9 +105,13 @@ public class BarrierProcessor implements DeploymentUnitProcessor {
                     ServiceBuilder<MdbBarrierService> builder = phaseContext.getServiceTarget()
                             .addService(mdbBarrierServiceName, mdbBarrierService)
                             .addDependency(description.getCreateServiceName(), MessageDrivenComponent.class,
-                                    mdbBarrierService.getMdbComponent()).setInitialMode(Mode.PASSIVE);
-                    builder.addDependencies(barrierDependencies);
-
+                                    mdbBarrierService.getMdbComponent())
+                            .addDependencies(ClusterBarrierResourceDefinition.BASIC_CAPABILITY.getCapabilityServiceName())
+                            .setInitialMode(Mode.PASSIVE);
+                    if (barrier != EJBBoundClusteringMetaData.SINGLETON_BARRIER) {
+                        // handle special case where we have a barrier with requirement
+                        builder.addDependency(ClusterBarrierResourceDefinition.getBarrierRequirementServiceName(barrier));
+                    }
                     builder.install();
                 }
             }
@@ -118,14 +125,12 @@ public class BarrierProcessor implements DeploymentUnitProcessor {
         if (clusteringMetaData == null || clusteringMetaData.isEmpty()) {
             return;
         }
-        final EEModuleConfiguration moduleConfiguration = deploymentUnit.getAttachment(
-                org.jboss.as.ee.component.Attachments.EE_MODULE_CONFIGURATION);
+        final EEModuleConfiguration moduleConfiguration = deploymentUnit.getAttachment(EE_MODULE_CONFIGURATION);
         if (moduleConfiguration == null) {
             return;
         }
-        // instead of recompiling the barrier dependencies for each mdb, it is quicker to just check if there is such a
         for (final ComponentConfiguration configuration : moduleConfiguration.getComponentConfigurations()) {
-            ComponentDescription description = configuration.getComponentDescription();
+            final ComponentDescription description = configuration.getComponentDescription();
             if (description instanceof MessageDrivenComponentDescription) {
                 final ServiceName mdbBarrierServiceName = createMdbBarrierServiceName(description.getStartServiceName());
                 final ServiceController<?> mdbBarrierService = deploymentUnit.getServiceRegistry().getService(
@@ -154,20 +159,18 @@ public class BarrierProcessor implements DeploymentUnitProcessor {
         return mdbComponentName.append("MDB_DELIVERY");
     }
 
-    private List<ServiceName> getBarrierDependencies(final List<EJBBoundClusteringMetaData> clusteringMetaData, final MessageDrivenComponentDescription componentConfiguration) throws DeploymentUnitProcessingException {
+    private String getBarrier(final List<EJBBoundClusteringMetaData> clusteringMetaData, final MessageDrivenComponentDescription componentConfiguration) throws DeploymentUnitProcessingException {
         final List<ServiceName> result = new ArrayList<>();
         final String ejbName = componentConfiguration.getEJBName();
-        for (final EJBBoundClusteringMetaData clusteringMD: clusteringMetaData) {
-            if (clusteringMD.hasBarrier()) {
-                final String clusteringEjbName = clusteringMD.getEjbName();
-                if (clusteringEjbName.equals("*") || clusteringEjbName.equals(ejbName)) {
-                    for (String barrier : clusteringMD.getBarriers()) {
-                        log.debug("Found a deployment descriptor barrier dependency for [" + ejbName + "] *:" + barrier);
-                        result.add(ServiceName.parse(barrier));
-                    }
-                }
+        String barrier = null;
+        for (final EJBBoundClusteringMetaData clusteringMD : clusteringMetaData) {
+            final String clusteringEjbName = clusteringMD.getEjbName();
+            if (clusteringEjbName.equals("*")) {
+                barrier = clusteringMD.getBarrier();
+            } else if (clusteringEjbName.equals(ejbName) && clusteringMD.getBarrier() != null) {
+                return clusteringMD.getBarrier();
             }
         }
-        return result;
+        return  barrier;
     }
 }

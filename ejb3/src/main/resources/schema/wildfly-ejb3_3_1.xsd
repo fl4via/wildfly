@@ -61,7 +61,7 @@
             <xs:element name="disable-default-ejb-permissions" type="disable-default-ejb-permissionsType" minOccurs="0" maxOccurs="1" />
             <xs:element name="statistics" type="statisticsType" minOccurs="0" maxOccurs="1"/>
             <xs:element name="log-system-exceptions" type="log-system-exceptionsType" minOccurs="0" maxOccurs="1"/>
-            <xs:element name="cluster-barrier" minOccurs="0" maxOccurs="1"/>
+            <xs:element name="cluster-barrier" type="cluster-barrierType" minOccurs="0" maxOccurs="1"/>
         </xs:all>
     </xs:complexType>
 
@@ -466,5 +466,9 @@
             </xs:documentation>
         </xs:annotation>
         <xs:attribute name="value" type="xs:boolean"/>
+    </xs:complexType>
+
+    <xs:complexType name="cluster-barrierType">
+        <xs:attribute name="fulfills" type="xs:string" use="optional"/>
     </xs:complexType>
 </xs:schema>
