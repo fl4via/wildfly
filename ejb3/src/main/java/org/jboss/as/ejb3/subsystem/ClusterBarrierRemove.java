@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2014, Red Hat, Inc., and individual contributors
+ * Copyright 2015, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -30,18 +30,19 @@ import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.dmr.ModelNode;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
+import static org.jboss.as.ejb3.subsystem.ClusterBarrierResourceDefinition.BARRIER_CAPABILITY;
 
 /**
  * Handler to remove clustering singleton barrier definition and corresponding service.
  *
- * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
+ * @author Flavia Rainone
  */ // TODO shouldn' t remove the DUP?
 public class ClusterBarrierRemove extends ServiceRemoveStepHandler {
 
     public static final ClusterBarrierRemove INSTANCE = new ClusterBarrierRemove();
 
     private ClusterBarrierRemove() {
-        super(ClusterBarrierResourceDefinition.BASIC_CAPABILITY.getCapabilityServiceName(), ClusterBarrierAdd.INSTANCE, ClusterBarrierResourceDefinition.BASIC_CAPABILITY);
+        super(BARRIER_CAPABILITY.getCapabilityServiceName(), ClusterBarrierAdd.INSTANCE, BARRIER_CAPABILITY);
     }
 
     @Override
@@ -54,7 +55,7 @@ public class ClusterBarrierRemove extends ServiceRemoveStepHandler {
             throw new RuntimeException(e);
         }
         if (fulfills != null) {
-            context.removeService(ClusterBarrierResourceDefinition.getBarrierRequirementServiceName(fulfills));
+            context.removeService(BARRIER_CAPABILITY.getCapabilityServiceName(fulfills));
         }
         super.performRuntime(context, operation, model);
     }

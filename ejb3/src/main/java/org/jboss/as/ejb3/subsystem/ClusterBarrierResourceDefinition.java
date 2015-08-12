@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2014, Red Hat, Inc., and individual contributors
+ * Copyright 2015, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -35,20 +35,18 @@ import org.jboss.as.ejb3.clustering.SingletonBarrierService;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 import org.jboss.msc.service.Service;
-import org.jboss.msc.service.ServiceName;
 import org.wildfly.clustering.singleton.SingletonPolicy;
 
 /**
  * {@link org.jboss.as.controller.ResourceDefinition} for clustering singleton barrier.
  *
- * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
+ * @author Flavia Rainone
  */
 public class ClusterBarrierResourceDefinition extends SimpleResourceDefinition {
 
-    private static final ServiceName BARRIER_NAME = ServiceName.of("ejb3", "cluster", "barrier");
-    public static final RuntimeCapability<Void> BASIC_CAPABILITY =  RuntimeCapability.Builder.of(
+    public static final RuntimeCapability<Void> BARRIER_CAPABILITY =  RuntimeCapability.Builder.of(
             "org.wildfly.ejb3.cluster.barrier", SingletonBarrierService.class)
-                    .addRequirements(SingletonPolicy.CAPABILITY_NAME).build();
+            .addRequirements(SingletonPolicy.CAPABILITY_NAME.concat(".default")).build();
 
     public static final SimpleAttributeDefinition FULFILLS =
             new SimpleAttributeDefinitionBuilder(EJB3SubsystemModel.CLUSTER_BARRIER_FULFILLS, ModelType.STRING, true)
@@ -59,15 +57,15 @@ public class ClusterBarrierResourceDefinition extends SimpleResourceDefinition {
 
     private ClusterBarrierResourceDefinition() {
         super(EJB3SubsystemModel.CLUSTER_BARRIER_PATH,
-                EJB3Extension.getResourceDescriptionResolver(EJB3SubsystemModel.CLUSTER_BARRIER),
-                ClusterBarrierAdd.INSTANCE, ClusterBarrierRemove.INSTANCE);
+                EJB3Extension.getResourceDescriptionResolver(EJB3SubsystemModel.CLUSTER_BARRIER), ClusterBarrierAdd.INSTANCE,
+                ClusterBarrierRemove.INSTANCE);
     }
 
     @Override
     public void registerOperations(ManagementResourceRegistration resourceRegistration) {
         super.registerOperations(resourceRegistration);
-        resourceRegistration.registerOperationHandler(ClusterBarrierElect.OPERATION_DEFINITION,
-                ClusterBarrierElect.INSTANCE, false);
+        resourceRegistration.registerOperationHandler(ClusterBarrierElect.OPERATION_DEFINITION, ClusterBarrierElect.INSTANCE,
+                false);
     }
 
     @Override
@@ -88,13 +86,9 @@ public class ClusterBarrierResourceDefinition extends SimpleResourceDefinition {
                     }
 
                     protected void replaceBarrierFulfillment(OperationContext context, ModelNode serviceToRemove, ModelNode serviceToAdd) throws OperationFailedException {
-                        context.removeService(BARRIER_NAME.append(serviceToRemove.asString()));
-                        context.getServiceTarget().addService(BARRIER_NAME.append(serviceToAdd.asString()), Service.NULL).install();
+                        context.removeService(BARRIER_CAPABILITY.getCapabilityServiceName(serviceToRemove.asString()));
+                        context.getServiceTarget().addService(BARRIER_CAPABILITY.getCapabilityServiceName(serviceToAdd.asString()), Service.NULL).install();
                     }
         });
-    }
-
-    public static final ServiceName getBarrierRequirementServiceName(String barrierRequirement) {
-        return BARRIER_NAME.append(barrierRequirement);
     }
 }

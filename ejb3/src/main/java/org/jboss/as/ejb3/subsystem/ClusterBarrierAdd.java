@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2014, Red Hat, Inc., and individual contributors
+ * Copyright 2015, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -32,22 +32,22 @@ import org.jboss.as.server.AbstractDeploymentChainStep;
 import org.jboss.as.server.DeploymentProcessorTarget;
 import org.jboss.as.server.deployment.Phase;
 import org.jboss.dmr.ModelNode;
-import org.jboss.msc.service.DelegatingServiceContainer;
+import org.jboss.msc.service.AbstractService;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceController;
-import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.service.ServiceTarget;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StartException;
-import org.jboss.msc.service.StopContext;
+import org.jboss.msc.value.InjectedValue;
 import org.wildfly.clustering.singleton.SingletonPolicy;
 
 import static org.jboss.as.ejb3.logging.EjbLogger.ROOT_LOGGER;
+import static org.jboss.as.ejb3.subsystem.ClusterBarrierResourceDefinition.BARRIER_CAPABILITY;
 
 /**
  * Adds BarrierProcessor and the singleton barrier service.
  *
- * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
+ * @author Flavia Rainone
  */
 public class ClusterBarrierAdd extends AbstractBoottimeAddStepHandler {
 
@@ -59,7 +59,7 @@ public class ClusterBarrierAdd extends AbstractBoottimeAddStepHandler {
 
     @Override
     protected void recordCapabilitiesAndRequirements(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
-        context.registerCapability(ClusterBarrierResourceDefinition.BASIC_CAPABILITY, null);
+        context.registerCapability(BARRIER_CAPABILITY, null);
     }
 
     @Override
@@ -76,66 +76,40 @@ public class ClusterBarrierAdd extends AbstractBoottimeAddStepHandler {
     }
 
     protected void installServices(final OperationContext context, final ModelNode model) throws OperationFailedException {
+         final ServiceTarget serviceTarget = context.getServiceTarget();
+         final String fulfills = ClusterBarrierResourceDefinition.FULFILLS.resolveModelAttribute(context, model).asString();
 
-        try {
-            final ServiceTarget serviceTarget = context.getServiceTarget();
-            final ServiceRegistry serviceRegistry = context.getServiceRegistry(true);
-            // install the HA singleton service
-            final SingletonBarrierService service = new SingletonBarrierService();
-            final SingletonPolicy singletonPolicy = (SingletonPolicy) serviceRegistry.getRequiredService(
-                    context.getCapabilityServiceName(SingletonPolicy.CAPABILITY_NAME, SingletonPolicy.class)).getValue();
-            //ServiceController<?> factoryService = serviceRegistry.getRequiredService(
-            //        SingletonServiceName.BUILDER.getServiceName("server"));
-            //SingletonServiceBuilderFactory factory = (SingletonServiceBuilderFactory) factoryService.getValue();
-            //factory.createSingletonServiceBuilder(SERVICE_NAME, service)
-            singletonPolicy.createSingletonServiceBuilder(ClusterBarrierResourceDefinition.BASIC_CAPABILITY.getCapabilityServiceName(), service)// "server", "default")
-                    .build(new DelegatingServiceContainer(serviceTarget, serviceRegistry))
-                    //.addDependency(ServerEnvironmentService.SERVICE_NAME, ServerEnvironment.class, env)
-                    .setInitialMode(ServiceController.Mode.ACTIVE)
-                    .install();
-
-            final String fulfills = ClusterBarrierResourceDefinition.FULFILLS.resolveModelAttribute(context, model).asString();
-            if (fulfills != null) {
-                serviceTarget.addService(ClusterBarrierResourceDefinition.getBarrierRequirementServiceName(fulfills), Service.NULL).install();
-            }
-
-        } catch (IllegalArgumentException e) {
-            throw new OperationFailedException(e.getLocalizedMessage());
-        }
+         // install the parent service
+         final ClusterBarrierParent parentService = new ClusterBarrierParent(fulfills);
+         serviceTarget.addService(BARRIER_CAPABILITY.getCapabilityServiceName("parent"), parentService)
+                 .addDependency(context.getCapabilityServiceName(SingletonPolicy.CAPABILITY_NAME, SingletonPolicy.class),
+                         SingletonPolicy.class, parentService.getSingletonPolicy())
+                 .install();
     }
 
-    // FIXME delete this or use it?
-    private static class BarrierInstaller implements Service<Void> {
+    private static class ClusterBarrierParent extends AbstractService<Void> {
 
-        private SingletonPolicy singletonPolicy;
         private final String fulfills;
+        private final InjectedValue<SingletonPolicy> singletonPolicy;
 
-        public BarrierInstaller(String fulfills) {
+        public ClusterBarrierParent(String fulfills) {
             this.fulfills = fulfills;
+            this.singletonPolicy = new InjectedValue<>();
         }
 
-        public void setSingletonPolicy(SingletonPolicy singletonPolicy) {
-            this.singletonPolicy = singletonPolicy;
+        public InjectedValue<SingletonPolicy> getSingletonPolicy() {
+            return singletonPolicy;
         }
 
         @Override public void start(StartContext context) throws StartException {
             final ServiceTarget target = context.getChildTarget();
+            SingletonPolicy singletonPolicyValue = singletonPolicy.getValue();
             SingletonBarrierService service = new SingletonBarrierService();
-                    singletonPolicy.createSingletonServiceBuilder(ClusterBarrierResourceDefinition.BASIC_CAPABILITY.getCapabilityServiceName(), service).build(target)
-                            //.addDependency(ServerEnvironmentService.SERVICE_NAME, ServerEnvironment.class, env)
+                    singletonPolicyValue.createSingletonServiceBuilder(BARRIER_CAPABILITY.getCapabilityServiceName(), service).build(target)
                             .setInitialMode(ServiceController.Mode.ACTIVE).install();
             if (fulfills != null) {
-                target.addService(ClusterBarrierResourceDefinition.getBarrierRequirementServiceName(fulfills), Service.NULL).install();
+                target.addService(BARRIER_CAPABILITY.getCapabilityServiceName(fulfills), Service.NULL).install();
             }
         }
-
-        @Override public void stop(StopContext context) {
-
-        }
-
-        @Override public Void getValue() throws IllegalStateException, IllegalArgumentException {
-            return null;
-        }
     }
-
 }
