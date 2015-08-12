@@ -30,7 +30,6 @@ import org.jboss.as.ejb3.clustering.MdbBarrierService;
 import org.jboss.as.ejb3.component.messagedriven.MessageDrivenComponent;
 import org.jboss.as.ejb3.component.messagedriven.MessageDrivenComponentDescription;
 import org.jboss.as.ejb3.deployment.EjbDeploymentAttachmentKeys;
-import org.jboss.as.ejb3.subsystem.ClusterBarrierResourceDefinition;
 import org.jboss.as.server.deployment.DeploymentPhaseContext;
 import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
@@ -48,12 +47,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.jboss.as.ee.component.Attachments.EE_MODULE_CONFIGURATION;
+import static org.jboss.as.ejb3.subsystem.ClusterBarrierResourceDefinition.BARRIER_CAPABILITY;
 
 /**
  * Barrier DUP, disables automatic delivery of messages to MDBs associated with a barrier, and create an
  * MDBBarrierService to enable/disable delivery according to that MDBs barrier configuration..
  *
- * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
+ * @author Flavia Rainone
  */
 public class BarrierProcessor implements DeploymentUnitProcessor {
 
@@ -106,11 +106,12 @@ public class BarrierProcessor implements DeploymentUnitProcessor {
                             .addService(mdbBarrierServiceName, mdbBarrierService)
                             .addDependency(description.getCreateServiceName(), MessageDrivenComponent.class,
                                     mdbBarrierService.getMdbComponent())
-                            .addDependencies(ClusterBarrierResourceDefinition.BASIC_CAPABILITY.getCapabilityServiceName())
+                            .addDependencies(BARRIER_CAPABILITY.getCapabilityServiceName())
                             .setInitialMode(Mode.PASSIVE);
                     if (barrier != EJBBoundClusteringMetaData.SINGLETON_BARRIER) {
                         // handle special case where we have a barrier with requirement
-                        builder.addDependency(ClusterBarrierResourceDefinition.getBarrierRequirementServiceName(barrier));
+                        builder.addDependency(BARRIER_CAPABILITY.getCapabilityServiceName(
+                                barrier));
                     }
                     builder.install();
                 }
