@@ -27,7 +27,7 @@ import org.jboss.as.ee.component.EEApplicationClasses;
 import org.jboss.as.ee.component.EEModuleClassDescription;
 import org.jboss.as.ee.metadata.ClassAnnotationInformation;
 import org.jboss.as.ejb3.component.messagedriven.MessageDrivenComponentDescription;
-import org.jboss.as.ejb3.deliveryactive.metadata.EJBBoundDeliveryActiveMetaData;
+import org.jboss.as.ejb3.deliveryactive.metadata.EJBBoundMdbDeliveryMetaData;
 import org.jboss.as.ejb3.deployment.EjbDeploymentAttachmentKeys;
 import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
@@ -41,9 +41,9 @@ import org.jboss.metadata.ejb.spec.EjbJarMetaData;
  *
  * @author <a href="http://jmesnil.net/">Jeff Mesnil</a> (c) 2013 Red Hat inc.
  */
-public class DeliveryActiveMergingProcessor extends AbstractMergingProcessor<MessageDrivenComponentDescription> {
+public class MdbDeliveryMergingProcessor extends AbstractMergingProcessor<MessageDrivenComponentDescription> {
 
-    public DeliveryActiveMergingProcessor() {
+    public MdbDeliveryMergingProcessor() {
         super(MessageDrivenComponentDescription.class);
     }
 
@@ -80,9 +80,9 @@ public class DeliveryActiveMergingProcessor extends AbstractMergingProcessor<Mes
             return;
         }
         Boolean deliveryActive = null;
-        final List<EJBBoundDeliveryActiveMetaData> deliveryActiveDataList = assemblyDescriptor.getAny(EJBBoundDeliveryActiveMetaData.class);
+        final List<EJBBoundMdbDeliveryMetaData> deliveryActiveDataList = assemblyDescriptor.getAny(EJBBoundMdbDeliveryMetaData.class);
         if (deliveryActiveDataList != null) {
-            for (EJBBoundDeliveryActiveMetaData deliveryActiveData : deliveryActiveDataList) {
+            for (EJBBoundMdbDeliveryMetaData deliveryActiveData : deliveryActiveDataList) {
                 if ("*".equals(deliveryActiveData.getEjbName()) && deliveryActive == null) {
                     deliveryActive = deliveryActiveData.isDeliveryActive();
                 } else if (ejbName.equals(deliveryActiveData.getEjbName())) {

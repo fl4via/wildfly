@@ -25,39 +25,52 @@ package org.jboss.as.ejb3.deliveryactive.parser;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
-import org.jboss.as.ejb3.deliveryactive.metadata.EJBBoundDeliveryActiveMetaData;
+import org.jboss.as.ejb3.deliveryactive.metadata.EJBBoundMdbDeliveryMetaData;
 import org.jboss.metadata.ejb.parser.jboss.ejb3.AbstractEJBBoundMetaDataParser;
 import org.jboss.metadata.property.PropertyReplacer;
 
 /**
- * Parser for EJBBoundDeliveryActiveMetaData components.
+ * Parser for EJBBoundMdbDeliveryMetaData components.
  *
  * @author <a href="http://jmesnil.net/">Jeff Mesnil</a> (c) 2013 Red Hat inc.
+ * @author Flavia Rainone
  */
-public class EJBBoundDeliveryActiveMetaDataParser extends AbstractEJBBoundMetaDataParser<EJBBoundDeliveryActiveMetaData> {
+public class EJBBoundMdbDeliveryMetaDataParser extends AbstractEJBBoundMetaDataParser<EJBBoundMdbDeliveryMetaData> {
 
     public static final String NAMESPACE_URI = "urn:delivery-active:1.0";
 
     private static final String ACTIVE = "active";
+    private static final String GROUP = "group";
 
-    public static final EJBBoundDeliveryActiveMetaDataParser INSTANCE = new EJBBoundDeliveryActiveMetaDataParser();
+    public static final EJBBoundMdbDeliveryMetaDataParser INSTANCE = new EJBBoundMdbDeliveryMetaDataParser();
 
-    private EJBBoundDeliveryActiveMetaDataParser() {
+    private EJBBoundMdbDeliveryMetaDataParser() {
 
     }
 
     @Override
-    public EJBBoundDeliveryActiveMetaData parse(XMLStreamReader reader, final PropertyReplacer propertyReplacer) throws XMLStreamException {
-        EJBBoundDeliveryActiveMetaData metaData = new EJBBoundDeliveryActiveMetaData();
+    public EJBBoundMdbDeliveryMetaData parse(XMLStreamReader reader, final PropertyReplacer propertyReplacer) throws XMLStreamException {
+        EJBBoundMdbDeliveryMetaData metaData = new EJBBoundMdbDeliveryMetaData();
         processElements(metaData, reader, propertyReplacer);
         return metaData;
     }
 
     @Override
-    protected void processElement(EJBBoundDeliveryActiveMetaData metaData, XMLStreamReader reader,  final PropertyReplacer propertyReplacer) throws XMLStreamException {
+    protected void processElement(EJBBoundMdbDeliveryMetaData metaData, XMLStreamReader reader,  final PropertyReplacer propertyReplacer) throws XMLStreamException {
         final String namespaceURI = reader.getNamespaceURI();
         final String localName = reader.getLocalName();
         if (NAMESPACE_URI.equals(namespaceURI)) {
+            switch (localName) {
+                case ACTIVE:
+                    final String val = getElementText(reader, propertyReplacer);
+                    metaData.setDeliveryActive(Boolean.parseBoolean(val.trim()));
+                    break;
+                case GROUP:
+                    metaData.setDeliveryGroup(getElementText(reader, propertyReplacer).trim());
+                    break;
+                default:
+                    throw unexpectedElement(reader);
+            }
             if (ACTIVE.equals(localName)) {
                 final String val = getElementText(reader, propertyReplacer);
                 metaData.setDeliveryActive(Boolean.parseBoolean(val.trim()));
