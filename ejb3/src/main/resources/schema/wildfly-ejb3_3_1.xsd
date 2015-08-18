@@ -69,6 +69,7 @@
         <xs:all>
             <xs:element name="resource-adapter-ref" type="resource-adapter-refType" minOccurs="0" maxOccurs="1"/>
             <xs:element name="bean-instance-pool-ref" type="bean-instance-pool-refType" minOccurs="0" maxOccurs="1"/>
+            <xs:element name="delivery-groups" type="delivery-groupsType" minOccurs="0" maxOccurs="1"/>
         </xs:all>
     </xs:complexType>
 
@@ -179,6 +180,16 @@
 
     <xs:complexType name="bean-instance-pool-refType">
         <xs:attribute name="pool-name" use="required" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:complexType name="delivery-groupsType">
+        <xs:choice minOccurs="1" maxOccurs="unbounded">
+            <xs:element name="delivery-group" type="delivery-groupType"/>
+        </xs:choice>
+    </xs:complexType>
+
+    <xs:complexType name="delivery-groupType">
+        <xs:attribute name="name" use="required" type="xs:string"/>
     </xs:complexType>
 
     <xs:complexType name="poolsType">

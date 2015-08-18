@@ -108,7 +108,8 @@ public class EJB3SubsystemXMLPersister implements XMLElementWriter<SubsystemMars
         }
 
         // write the mdb element
-        if (model.hasDefined(EJB3SubsystemModel.DEFAULT_MDB_INSTANCE_POOL) || model.hasDefined(EJB3SubsystemModel.DEFAULT_RESOURCE_ADAPTER_NAME)) {
+        if (model.hasDefined(EJB3SubsystemModel.DEFAULT_MDB_INSTANCE_POOL) || model.hasDefined(EJB3SubsystemModel.DEFAULT_RESOURCE_ADAPTER_NAME)
+            || model.hasDefined(EJB3SubsystemModel.MDB_DELIVERY_GROUP)) {
             // <mdb>
             writer.writeStartElement(EJB3SubsystemXMLElement.MDB.getLocalName());
             // write out the mdb element contents
@@ -317,6 +318,17 @@ public class EJB3SubsystemXMLPersister implements XMLElementWriter<SubsystemMars
             // write the value
             writer.writeAttribute(EJB3SubsystemXMLAttribute.POOL_NAME.getLocalName(), poolRefName);
             // </bean-instance-pool-ref>
+            writer.writeEndElement();
+        }
+        if (mdbModelNode.hasDefined(EJB3SubsystemModel.MDB_DELIVERY_GROUP)) {
+            //<delivery-groups>
+            writer.writeStartElement(EJB3SubsystemXMLElement.DELIVERY_GROUPS.getLocalName());
+            for (Property property : mdbModelNode.get(EJB3SubsystemModel.MDB_DELIVERY_GROUP).asPropertyList()) {
+                writer.writeStartElement(EJB3SubsystemXMLElement.DELIVERY_GROUP.getLocalName());
+                writer.writeAttribute(EJB3SubsystemXMLAttribute.NAME.getLocalName(), property.getName());
+                writer.writeEndElement();
+            }
+            //</delivery-groups>
             writer.writeEndElement();
         }
     }
