@@ -38,6 +38,7 @@ import org.jboss.metadata.property.PropertyReplacer;
 public class EJBBoundMdbDeliveryMetaDataParser extends AbstractEJBBoundMetaDataParser<EJBBoundMdbDeliveryMetaData> {
 
     public static final String NAMESPACE_URI_1_0 = "urn:delivery-active:1.0";
+    private static final String ROOT_ELEMENT_DELIVERY = "delivery";
     private static final String ACTIVE = "active";
 
     public static final EJBBoundMdbDeliveryMetaDataParser INSTANCE = new EJBBoundMdbDeliveryMetaDataParser();
@@ -48,6 +49,10 @@ public class EJBBoundMdbDeliveryMetaDataParser extends AbstractEJBBoundMetaDataP
 
     @Override
     public EJBBoundMdbDeliveryMetaData parse(XMLStreamReader reader, final PropertyReplacer propertyReplacer) throws XMLStreamException {
+        // we only parse <delivery> (root) element
+        if (!ROOT_ELEMENT_DELIVERY.equals(reader.getLocalName())) {
+            throw unexpectedElement(reader);
+        }
         EJBBoundMdbDeliveryMetaData metaData = new EJBBoundMdbDeliveryMetaData();
         processElements(metaData, reader, propertyReplacer);
         return metaData;
