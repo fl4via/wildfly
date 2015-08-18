@@ -263,6 +263,9 @@ public class EJB3SubsystemRootResourceDefinition extends SimpleResourceDefinitio
 
         subsystemRegistration.registerSubModel(RemotingProfileResourceDefinition.INSTANCE);
 
+        // subsystem=ejb3/mdb-delivery-group=*
+        subsystemRegistration.registerSubModel(MdbDeliveryGroupResourceDefinition.INSTANCE);
+
         // subsystem=ejb3/service=singletonbarrier
         subsystemRegistration.registerSubModel(ClusterBarrierResourceDefinition.INSTANCE);
     }
