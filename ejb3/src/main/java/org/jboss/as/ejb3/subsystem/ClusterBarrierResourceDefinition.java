@@ -22,19 +22,9 @@
 
 package org.jboss.as.ejb3.subsystem;
 
-import org.jboss.as.controller.AbstractWriteAttributeHandler;
-import org.jboss.as.controller.OperationContext;
-import org.jboss.as.controller.OperationFailedException;
-import org.jboss.as.controller.SimpleAttributeDefinition;
-import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleResourceDefinition;
 import org.jboss.as.controller.capability.RuntimeCapability;
-import org.jboss.as.controller.operations.validation.ModelTypeValidator;
-import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.ejb3.clustering.SingletonBarrierService;
-import org.jboss.dmr.ModelNode;
-import org.jboss.dmr.ModelType;
-import org.jboss.msc.service.Service;
 import org.wildfly.clustering.singleton.SingletonPolicy;
 
 /**
@@ -48,40 +38,11 @@ public class ClusterBarrierResourceDefinition extends SimpleResourceDefinition {
             "org.wildfly.ejb3.cluster.barrier", SingletonBarrierService.class)
             .addRequirements(SingletonPolicy.CAPABILITY_NAME.concat(".default")).build();
 
-    public static final SimpleAttributeDefinition FULFILLS =
-            new SimpleAttributeDefinitionBuilder(EJB3SubsystemModel.CLUSTER_BARRIER_FULFILLS, ModelType.STRING, true)
-                    .setValidator(new ModelTypeValidator(ModelType.STRING, true, false))
-                    .build();
-
     public static final ClusterBarrierResourceDefinition INSTANCE = new ClusterBarrierResourceDefinition();
 
     private ClusterBarrierResourceDefinition() {
         super(EJB3SubsystemModel.CLUSTER_BARRIER_PATH,
                 EJB3Extension.getResourceDescriptionResolver(EJB3SubsystemModel.CLUSTER_BARRIER), ClusterBarrierAdd.INSTANCE,
                 ClusterBarrierRemove.INSTANCE);
-    }
-
-    @Override
-    public void registerAttributes(ManagementResourceRegistration resourceRegistration) {
-        resourceRegistration.registerReadWriteAttribute(FULFILLS, null,
-                new AbstractWriteAttributeHandler<Void>() {
-                    @Override protected boolean applyUpdateToRuntime(OperationContext context, ModelNode operation,
-                            String attributeName, ModelNode resolvedValue, ModelNode currentValue,
-                            HandbackHolder<Void> handbackHolder) throws OperationFailedException {
-                        replaceBarrierFulfillment(context, currentValue, resolvedValue);
-                        return false;
-                    }
-
-                    @Override protected void revertUpdateToRuntime(OperationContext context, ModelNode operation,
-                            String attributeName, ModelNode valueToRestore, ModelNode valueToRevert, Void handback)
-                            throws OperationFailedException {
-                        replaceBarrierFulfillment(context, valueToRevert, valueToRestore);
-                    }
-
-                    protected void replaceBarrierFulfillment(OperationContext context, ModelNode serviceToRemove, ModelNode serviceToAdd) throws OperationFailedException {
-                        context.removeService(BARRIER_CAPABILITY.getCapabilityServiceName(serviceToRemove.asString()));
-                        context.getServiceTarget().addService(BARRIER_CAPABILITY.getCapabilityServiceName(serviceToAdd.asString()), Service.NULL).install();
-                    }
-        });
     }
 }

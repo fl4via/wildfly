@@ -20,31 +20,26 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.jboss.as.ejb3.clustering;
+package org.jboss.as.ejb3.component.messagedriven;
 
-
-import org.jboss.as.ejb3.component.messagedriven.MessageDrivenComponent;
-import org.jboss.logging.Logger;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StartException;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.value.InjectedValue;
 
-
 /**
- * Service that represents a cluster barrier for a specific MDB.
+ * Service that controls delivery for a specific MDB.
  *
  * When started, delivery to a mdb is enabled, when stopped, it is disabled.
  *
- * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
+ * @author Flavia Rainone
  */
-public class MdbBarrierService implements Service<MdbBarrierService> {
-    private static final Logger log = Logger.getLogger(MdbBarrierService.class);
+public class MdbDeliveryControllerService implements Service<MdbDeliveryControllerService> {
 
     private final InjectedValue<MessageDrivenComponent> mdbComponent = new InjectedValue<MessageDrivenComponent>();
 
-    public MdbBarrierService getValue() throws IllegalStateException, IllegalArgumentException {
+    public MdbDeliveryControllerService getValue() throws IllegalStateException, IllegalArgumentException {
         return this;
     }
 
@@ -53,14 +48,10 @@ public class MdbBarrierService implements Service<MdbBarrierService> {
     }
 
     public void start(final StartContext context) throws StartException {
-        MessageDrivenComponent mdb = mdbComponent.getValue();
-        mdb.startDelivery();
-        log.info("MDB delivery started: " + mdb.getApplicationName() + ", " + mdb.getComponentName());
+        mdbComponent.getValue().startDelivery();
     }
 
     public void stop(final StopContext context) {
-        MessageDrivenComponent mdb = mdbComponent.getValue();
-        mdb.stopDelivery();
-        log.info("MDB delivery stopped: " + mdb.getApplicationName() + ", " + mdb.getComponentName());
+        mdbComponent.getValue().stopDelivery();
     }
 }

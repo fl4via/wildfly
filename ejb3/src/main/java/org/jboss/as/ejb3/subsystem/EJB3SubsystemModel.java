@@ -97,7 +97,6 @@ public interface EJB3SubsystemModel {
     String PASSIVATION_STORE = "passivation-store";
 
     String CLUSTER_BARRIER = "cluster-barrier";
-    String CLUSTER_BARRIER_FULFILLS = "fulfills";
 
     @Deprecated String FILE_PASSIVATION_STORE = "file-passivation-store";
     @Deprecated String IDLE_TIMEOUT = "idle-timeout";

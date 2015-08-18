@@ -93,8 +93,6 @@ public enum EJB3SubsystemXMLAttribute {
     USE_QUALIFIED_NAME("use-qualified-name"),
 
     VALUE("value"),
-
-    FULFILLS("fulfills")
     ;
 
     private final String name;
