@@ -69,6 +69,7 @@ import org.jboss.as.ejb3.deployment.processors.EjbRefProcessor;
 import org.jboss.as.ejb3.deployment.processors.EjbResourceInjectionAnnotationProcessor;
 import org.jboss.as.ejb3.deployment.processors.IIOPJndiBindingProcessor;
 import org.jboss.as.ejb3.deployment.processors.ImplicitLocalViewProcessor;
+import org.jboss.as.ejb3.deployment.processors.MdbDeliveryDependenciesProcessor;
 import org.jboss.as.ejb3.deployment.processors.PassivationAnnotationParsingProcessor;
 import org.jboss.as.ejb3.deployment.processors.SessionBeanHomeProcessor;
 import org.jboss.as.ejb3.deployment.processors.TimerServiceJndiBindingProcessor;
@@ -85,7 +86,7 @@ import org.jboss.as.ejb3.deployment.processors.merging.ApplicationExceptionMergi
 import org.jboss.as.ejb3.deployment.processors.merging.CacheMergingProcessor;
 import org.jboss.as.ejb3.deployment.processors.merging.ConcurrencyManagementMergingProcessor;
 import org.jboss.as.ejb3.deployment.processors.merging.DeclareRolesMergingProcessor;
-import org.jboss.as.ejb3.deployment.processors.merging.DeliveryActiveMergingProcessor;
+import org.jboss.as.ejb3.deployment.processors.merging.MdbDeliveryMergingProcessor;
 import org.jboss.as.ejb3.deployment.processors.merging.EjbConcurrencyMergingProcessor;
 import org.jboss.as.ejb3.deployment.processors.merging.EjbDependsOnMergingProcessor;
 import org.jboss.as.ejb3.deployment.processors.merging.EntityBeanPoolMergingProcessor;
@@ -263,7 +264,7 @@ class EJB3SubsystemAdd extends AbstractBoottimeAddStepHandler {
                     processorTarget.addDeploymentProcessor(EJB3Extension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_EJB_TX_ATTR_MERGE, new TransactionAttributeMergingProcessor());
                     processorTarget.addDeploymentProcessor(EJB3Extension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_EJB_RUN_AS_MERGE, new RunAsMergingProcessor());
                     processorTarget.addDeploymentProcessor(EJB3Extension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_EJB_RESOURCE_ADAPTER_MERGE, new ResourceAdaptorMergingProcessor());
-                    processorTarget.addDeploymentProcessor(EJB3Extension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_EJB_DELIVERY_ACTIVE_MERGE, new DeliveryActiveMergingProcessor());
+                    processorTarget.addDeploymentProcessor(EJB3Extension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_EJB_DELIVERY_ACTIVE_MERGE, new MdbDeliveryMergingProcessor());
                     processorTarget.addDeploymentProcessor(EJB3Extension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_EJB_REMOVE_METHOD, new RemoveMethodMergingProcessor());
                     processorTarget.addDeploymentProcessor(EJB3Extension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_EJB_STARTUP_MERGE, new StartupMergingProcessor());
                     processorTarget.addDeploymentProcessor(EJB3Extension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_EJB_SECURITY_DOMAIN, new SecurityDomainMergingProcessor());
@@ -287,6 +288,8 @@ class EJB3SubsystemAdd extends AbstractBoottimeAddStepHandler {
                     processorTarget.addDeploymentProcessor(EJB3Extension.SUBSYSTEM_NAME, Phase.INSTALL, Phase.INSTALL_DEPLOYMENT_REPOSITORY, new DeploymentRepositoryProcessor());
                     processorTarget.addDeploymentProcessor(EJB3Extension.SUBSYSTEM_NAME, Phase.INSTALL, Phase.INSTALL_EJB_MANAGEMENT_RESOURCES, new EjbManagementDeploymentUnitProcessor());
                     processorTarget.addDeploymentProcessor(EJB3Extension.SUBSYSTEM_NAME, Phase.INSTALL, Phase.INSTALL_CACHE_DEPENDENCIES, new CacheDependenciesProcessor());
+                    // FIXME Phase
+                    processorTarget.addDeploymentProcessor(EJB3Extension.SUBSYSTEM_NAME, Phase.INSTALL, Phase.INSTALL_EE_MODULE_CONFIG + 1, new MdbDeliveryDependenciesProcessor()); // TODO Phase
                 }
 
             }
