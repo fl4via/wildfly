@@ -3072,4 +3072,12 @@ public interface EjbLogger extends BasicLogger {
     @Message(id = 474, value = "Attribute '%s' is not supported on current version servers; it is only allowed if its value matches '%s'. This attribute should be removed.")
     void logInconsistentAttributeNotSupported(String attributeName, String mustMatch);
 
+    @LogMessage(level = INFO)
+    @Message(id = 475, value = "MDB delivery started: %s,%s")
+    void mdbDeliveryStarted(String appName, String componentName);
+
+    @LogMessage(level = INFO)
+    @Message(id = 476, value = "MDB delivery stopped: %s,%s")
+    void mdbDeliveryStopped(String appName, String componentName);
+
 }
