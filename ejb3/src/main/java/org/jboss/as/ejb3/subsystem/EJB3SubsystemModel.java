@@ -99,7 +99,6 @@ public interface EJB3SubsystemModel {
     String MDB_DELIVERY_GROUP="mdb-delivery-group";
     String MDB_DELVIERY_GROUP_ACTIVE = "active";
     String CLUSTER_BARRIER = "cluster-barrier";
-    String CLUSTER_BARRIER_FULFILLS = "fulfills";
 
     @Deprecated String FILE_PASSIVATION_STORE = "file-passivation-store";
     @Deprecated String IDLE_TIMEOUT = "idle-timeout";

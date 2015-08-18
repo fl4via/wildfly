@@ -75,5 +75,5 @@
     <disable-default-ejb-permissions value="true"/>
     <statistics enabled="${ejb.enable-statistics:true}" />
     <log-system-exceptions value="${ejb.log-system-exceptions:false}" />
-    <cluster-barrier fulfills="requirement"/>
+    <cluster-barrier/>
 </subsystem>

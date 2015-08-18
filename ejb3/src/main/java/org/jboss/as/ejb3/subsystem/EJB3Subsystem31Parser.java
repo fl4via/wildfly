@@ -73,19 +73,7 @@ public class EJB3Subsystem31Parser extends EJB3Subsystem30Parser {
 
     private void parseClusterBarrier(final XMLExtendedStreamReader reader, final List<ModelNode> operations) throws XMLStreamException {
         ModelNode addOperation = Util.createAddOperation(SUBSYSTEM_PATH.append(EJB3SubsystemModel.CLUSTER_BARRIER_PATH));
-        int attributesCount = reader.getAttributeCount();
-        if (attributesCount > 0) {
-            for (int i = 0; i < attributesCount; i++) {
-                final EJB3SubsystemXMLAttribute attribute = EJB3SubsystemXMLAttribute.forName(reader.getAttributeLocalName(i));
-                switch (attribute) {
-                    case FULFILLS:
-                        ClusterBarrierResourceDefinition.FULFILLS.parseAndSetParameter(reader.getAttributeValue(i), addOperation, reader);
-                        break;
-                    default:
-                        throw unexpectedAttribute(reader, i);
-                }
-            }
-        }
+        requireNoAttributes(reader);
         requireNoContent(reader);
         operations.add(addOperation);
     }

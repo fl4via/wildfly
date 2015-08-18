@@ -33,7 +33,6 @@ import org.jboss.as.server.DeploymentProcessorTarget;
 import org.jboss.as.server.deployment.Phase;
 import org.jboss.dmr.ModelNode;
 import org.jboss.msc.service.AbstractService;
-import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceTarget;
 import org.jboss.msc.service.StartContext;
@@ -45,7 +44,7 @@ import static org.jboss.as.ejb3.logging.EjbLogger.ROOT_LOGGER;
 import static org.jboss.as.ejb3.subsystem.ClusterBarrierResourceDefinition.BARRIER_CAPABILITY;
 
 /**
- * Adds BarrierProcessor and the singleton barrier service.
+ * Adds the singleton barrier service.
  *
  * @author Flavia Rainone
  */
@@ -54,7 +53,7 @@ public class ClusterBarrierAdd extends AbstractBoottimeAddStepHandler {
     static final ClusterBarrierAdd INSTANCE = new ClusterBarrierAdd();
 
     private ClusterBarrierAdd() {
-        super(ClusterBarrierResourceDefinition.FULFILLS);
+        super();
     }
 
     @Override
@@ -72,28 +71,25 @@ public class ClusterBarrierAdd extends AbstractBoottimeAddStepHandler {
                                 new BarrierProcessor());
             }
         }, OperationContext.Stage.RUNTIME);
-        installServices(context, model);
+        installServices(context);
     }
 
-    protected void installServices(final OperationContext context, final ModelNode model) throws OperationFailedException {
+    protected void installServices(final OperationContext context) throws OperationFailedException {
          final ServiceTarget serviceTarget = context.getServiceTarget();
-         final String fulfills = ClusterBarrierResourceDefinition.FULFILLS.resolveModelAttribute(context, model).asString();
 
          // install the parent service
-         final ClusterBarrierParent parentService = new ClusterBarrierParent(fulfills);
-         serviceTarget.addService(BARRIER_CAPABILITY.getCapabilityServiceName("parent"), parentService)
+         final ClusterBarrierCreator serviceCreator = new ClusterBarrierCreator();
+         serviceTarget.addService(BARRIER_CAPABILITY.getCapabilityServiceName("creator"), serviceCreator)
                  .addDependency(context.getCapabilityServiceName(SingletonPolicy.CAPABILITY_NAME, SingletonPolicy.class),
-                         SingletonPolicy.class, parentService.getSingletonPolicy())
+                         SingletonPolicy.class, serviceCreator.getSingletonPolicy())
                  .install();
     }
 
-    private static class ClusterBarrierParent extends AbstractService<Void> {
+    private static class ClusterBarrierCreator extends AbstractService<Void> {
 
-        private final String fulfills;
         private final InjectedValue<SingletonPolicy> singletonPolicy;
 
-        public ClusterBarrierParent(String fulfills) {
-            this.fulfills = fulfills;
+        public ClusterBarrierCreator() {
             this.singletonPolicy = new InjectedValue<>();
         }
 
@@ -103,13 +99,12 @@ public class ClusterBarrierAdd extends AbstractBoottimeAddStepHandler {
 
         @Override public void start(StartContext context) throws StartException {
             final ServiceTarget target = context.getChildTarget();
-            SingletonPolicy singletonPolicyValue = singletonPolicy.getValue();
-            SingletonBarrierService service = new SingletonBarrierService();
-                    singletonPolicyValue.createSingletonServiceBuilder(BARRIER_CAPABILITY.getCapabilityServiceName(), service).build(target)
-                            .setInitialMode(ServiceController.Mode.ACTIVE).install();
-            if (fulfills != null) {
-                target.addService(BARRIER_CAPABILITY.getCapabilityServiceName(fulfills), Service.NULL).install();
-            }
+            final SingletonPolicy singletonPolicyValue = singletonPolicy.getValue();
+            final SingletonBarrierService service = new SingletonBarrierService();
+            singletonPolicyValue.createSingletonServiceBuilder(BARRIER_CAPABILITY.getCapabilityServiceName(), service)
+                    .build(target)
+                    .setInitialMode(ServiceController.Mode.ACTIVE)
+                    .install();
         }
     }
 }
