@@ -3068,4 +3068,13 @@ public interface EjbLogger extends BasicLogger {
     @Message(id = 473, value = "JNDI bindings for session bean named '%s' in deployment unit '%s' are as follows:%s")
     void jndiBindings(final String ejbName, final DeploymentUnit deploymentUnit, final StringBuilder bindings);
 
+    @LogMessage(level = INFO)
+    @Message(id = 474, value = "MDB delivery started: %s,%s")
+    void mdbDeliveryStarted(String appName, String componentName);
+
+    @LogMessage(level = INFO)
+    @Message(id = 475, value = "MDB delivery stopped: %s,%s")
+    void mdbDeliveryStopped(String appName, String componentName);
+
+
 }
