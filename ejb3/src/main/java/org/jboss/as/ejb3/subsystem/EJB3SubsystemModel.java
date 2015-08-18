@@ -96,6 +96,8 @@ public interface EJB3SubsystemModel {
     String CACHE = "cache";
     String PASSIVATION_STORE = "passivation-store";
 
+    String MDB_DELIVERY_GROUP="mdb-delivery-group";
+
     @Deprecated String FILE_PASSIVATION_STORE = "file-passivation-store";
     @Deprecated String IDLE_TIMEOUT = "idle-timeout";
     @Deprecated String IDLE_TIMEOUT_UNIT = "idle-timeout-unit";
