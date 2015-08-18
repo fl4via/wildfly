@@ -20,7 +20,7 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.jboss.as.ejb3.deployment.processors.clustering;
+package org.jboss.as.ejb3.deployment.processors;
 
 import org.jboss.as.ee.component.ComponentConfiguration;
 import org.jboss.as.ee.component.ComponentDescription;
@@ -30,62 +30,63 @@ import org.jboss.as.ejb3.component.messagedriven.MdbDeliveryControllerService;
 import org.jboss.as.ejb3.component.messagedriven.MessageDrivenComponent;
 import org.jboss.as.ejb3.component.messagedriven.MessageDrivenComponentDescription;
 import org.jboss.as.ejb3.deployment.EjbDeploymentAttachmentKeys;
+import org.jboss.as.ejb3.subsystem.MdbDeliveryGroupResourceDefinition;
 import org.jboss.as.server.deployment.DeploymentPhaseContext;
 import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
 import org.jboss.as.server.deployment.DeploymentUnitProcessor;
+import org.jboss.logging.Logger;
 import org.jboss.metadata.ejb.spec.AssemblyDescriptorMetaData;
 import org.jboss.metadata.ejb.spec.EjbJarMetaData;
+import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceController.Mode;
 import org.jboss.msc.service.ServiceName;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.jboss.as.ee.component.Attachments.EE_MODULE_CONFIGURATION;
 import static org.jboss.as.ejb3.subsystem.ClusterBarrierResourceDefinition.BARRIER_CAPABILITY;
 
 /**
- * Barrier DUP, disables automatic delivery of messages to MDBs associated with a barrier, and create an
- * MDBBarrierService to enable/disable delivery according to that MDBs barrier configuration..
+ * MdbDeliveryDependencies DUP, creates an MdbDeliveryControllerService to enable/disable delivery according to that MDBs
+ * delivery group configuration, and according to whether the Mdb is clustered singleton or not.
  *
  * @author Flavia Rainone
  */
-public class BarrierProcessor implements DeploymentUnitProcessor {
+public class MdbDeliveryDependenciesProcessor implements DeploymentUnitProcessor {
 
     @Override
     public void deploy(DeploymentPhaseContext phaseContext) throws DeploymentUnitProcessingException {
         final DeploymentUnit deploymentUnit = phaseContext.getDeploymentUnit();
-        final EEModuleConfiguration moduleConfiguration = deploymentUnit.getAttachment(
-                EE_MODULE_CONFIGURATION);
+        final EEModuleConfiguration moduleConfiguration = deploymentUnit.getAttachment(EE_MODULE_CONFIGURATION);
         if (moduleConfiguration == null) {
             return;
         }
-
         final List<EJBBoundClusteringMetaData> clusteringMetaData = getEJBBoundClusteringMetaData(phaseContext.getDeploymentUnit());
-        if (clusteringMetaData == null || clusteringMetaData.isEmpty()) {
-            return;
-        }
         for (final ComponentConfiguration configuration : moduleConfiguration.getComponentConfigurations()) {
             ComponentDescription description = configuration.getComponentDescription();
             if (description instanceof MessageDrivenComponentDescription) {
                 final MessageDrivenComponentDescription mdbDescription = (MessageDrivenComponentDescription) description;
-                if (isClusteredSingleton(clusteringMetaData, mdbDescription)) {
-                    //set deliveryActive to false for this case as it will be
-                    //controlled via the dependencies
-                    mdbDescription.setDeliveryActive(false);
-
+                final boolean clusteredSingleton = isClusteredSingleton(mdbDescription, clusteringMetaData);
+                final String deliveryGroup = mdbDescription.getDeliveryGroup();
+                if (clusteredSingleton || deliveryGroup != null) {
                     final ServiceName serviceName = description.getStartServiceName();
-                    // install the HA MDB delivery service for the MDB
-                    // these are passive, so they get started when they can, but
-                    // do not report errors when not started
-                    final MdbDeliveryControllerService mdbBarrierService = new MdbDeliveryControllerService();
-                    phaseContext.getServiceTarget().addService(createMdbBarrierServiceName(serviceName), mdbBarrierService)
+                    final MdbDeliveryControllerService mdbDeliveryControllerService = new MdbDeliveryControllerService();
+                    final ServiceName mdbDeliveryControllerServiceName = createMdbDeliveryControllerServiceName(serviceName);
+                    ServiceBuilder<MdbDeliveryControllerService> builder = phaseContext.getServiceTarget()
+                            .addService(mdbDeliveryControllerServiceName, mdbDeliveryControllerService)
                             .addDependency(description.getCreateServiceName(), MessageDrivenComponent.class,
-                                    mdbBarrierService.getMdbComponent())
-                            .addDependencies(BARRIER_CAPABILITY.getCapabilityServiceName().append("service"))
-                            .setInitialMode(Mode.PASSIVE)
-                            .install();
+                                    mdbDeliveryControllerService.getMdbComponent())
+                            .setInitialMode(Mode.PASSIVE);
+                    if (clusteredSingleton) {
+                        builder.addDependency(BARRIER_CAPABILITY.getCapabilityServiceName().append("service"));
+                    }
+                    if (deliveryGroup != null) {
+                        builder.addDependency(MdbDeliveryGroupResourceDefinition.getDeliveryGroupServiceName(deliveryGroup));
+                    }
+                    builder.install();
                 }
             }
         }
@@ -93,11 +94,6 @@ public class BarrierProcessor implements DeploymentUnitProcessor {
 
     @Override
     public void undeploy(DeploymentUnit deploymentUnit) {
-        // dont even bother removing services if we have no clustering meta data
-        final List<EJBBoundClusteringMetaData> clusteringMetaData = getEJBBoundClusteringMetaData(deploymentUnit);
-        if (clusteringMetaData == null || clusteringMetaData.isEmpty()) {
-            return;
-        }
         final EEModuleConfiguration moduleConfiguration = deploymentUnit.getAttachment(EE_MODULE_CONFIGURATION);
         if (moduleConfiguration == null) {
             return;
@@ -105,11 +101,12 @@ public class BarrierProcessor implements DeploymentUnitProcessor {
         for (final ComponentConfiguration configuration : moduleConfiguration.getComponentConfigurations()) {
             final ComponentDescription description = configuration.getComponentDescription();
             if (description instanceof MessageDrivenComponentDescription) {
-                final ServiceName mdbBarrierServiceName = createMdbBarrierServiceName(description.getStartServiceName());
-                final ServiceController<?> mdbBarrierService = deploymentUnit.getServiceRegistry().getService(
-                        mdbBarrierServiceName);
-                if (mdbBarrierService != null) {
-                    mdbBarrierService.setMode(Mode.REMOVE);
+                final ServiceName mdbDeliveryControllerServiceName = createMdbDeliveryControllerServiceName(
+                        description.getStartServiceName());
+                final ServiceController<?> mdbDeliveryControllerService = deploymentUnit.getServiceRegistry().getService(
+                        mdbDeliveryControllerServiceName);
+                if (mdbDeliveryControllerService != null) {
+                    mdbDeliveryControllerService.setMode(Mode.REMOVE);
                 }
             }
         }
@@ -128,21 +125,26 @@ public class BarrierProcessor implements DeploymentUnitProcessor {
         return assemblyDescriptorMetaData.getAny(EJBBoundClusteringMetaData.class);
     }
 
-    private ServiceName createMdbBarrierServiceName(ServiceName mdbComponentName) {
+    private ServiceName createMdbDeliveryControllerServiceName(ServiceName mdbComponentName) {
         return mdbComponentName.append("MDB_DELIVERY");
     }
 
-    private boolean isClusteredSingleton(final List<EJBBoundClusteringMetaData> clusteringMetaData, final MessageDrivenComponentDescription componentConfiguration) throws DeploymentUnitProcessingException {
+    private boolean isClusteredSingleton(final MessageDrivenComponentDescription componentConfiguration, final List<EJBBoundClusteringMetaData> clusteringMetaData) throws DeploymentUnitProcessingException {
+        if (clusteringMetaData == null || clusteringMetaData.isEmpty()) {
+            return false;
+        }
+        final List<ServiceName> result = new ArrayList<>();
         final String ejbName = componentConfiguration.getEJBName();
-        boolean clusteredSingleton = false;
+        boolean wildcardClusteredSingleton = false;
         for (final EJBBoundClusteringMetaData clusteringMD : clusteringMetaData) {
             final String clusteringEjbName = clusteringMD.getEjbName();
             if (clusteringEjbName.equals("*") && clusteringMD.isClusteredSingleton()) {
-                clusteredSingleton = true;
-            } else if (clusteringEjbName.equals(ejbName) && clusteringMD.isClusteredSingleton()) {
+                wildcardClusteredSingleton = true;
+            }
+            if (clusteringEjbName.equals(ejbName) && clusteringMD.isClusteredSingleton()) {
                 return true;
             }
         }
-        return  clusteredSingleton;
+        return  wildcardClusteredSingleton;
     }
 }

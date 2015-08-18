@@ -27,10 +27,6 @@ import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.ejb3.clustering.SingletonBarrierService;
-import org.jboss.as.ejb3.deployment.processors.clustering.BarrierProcessor;
-import org.jboss.as.server.AbstractDeploymentChainStep;
-import org.jboss.as.server.DeploymentProcessorTarget;
-import org.jboss.as.server.deployment.Phase;
 import org.jboss.dmr.ModelNode;
 import org.jboss.msc.service.AbstractService;
 import org.jboss.msc.service.ServiceController;
@@ -40,7 +36,6 @@ import org.jboss.msc.service.StartException;
 import org.jboss.msc.value.InjectedValue;
 import org.wildfly.clustering.singleton.SingletonPolicy;
 
-import static org.jboss.as.ejb3.logging.EjbLogger.ROOT_LOGGER;
 import static org.jboss.as.ejb3.subsystem.ClusterBarrierResourceDefinition.BARRIER_CAPABILITY;
 
 /**
@@ -63,14 +58,6 @@ public class ClusterBarrierAdd extends AbstractBoottimeAddStepHandler {
 
     @Override
     protected void performBoottime(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
-        context.addStep(new AbstractDeploymentChainStep() {
-            protected void execute(DeploymentProcessorTarget processorTarget) {
-                ROOT_LOGGER.debug("Adding BarrierProcessor");
-                processorTarget
-                        .addDeploymentProcessor(EJB3Extension.SUBSYSTEM_NAME, Phase.INSTALL, Phase.INSTALL_EE_MODULE_CONFIG + 1,
-                                new BarrierProcessor());
-            }
-        }, OperationContext.Stage.RUNTIME);
         installServices(context);
     }
 

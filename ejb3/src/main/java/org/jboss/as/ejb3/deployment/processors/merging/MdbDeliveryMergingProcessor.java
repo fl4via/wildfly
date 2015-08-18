@@ -40,6 +40,7 @@ import org.jboss.metadata.ejb.spec.EjbJarMetaData;
  * Handles the {@link org.jboss.ejb3.annotation.DeliveryActive} annotation merging
  *
  * @author <a href="http://jmesnil.net/">Jeff Mesnil</a> (c) 2013 Red Hat inc.
+ * @author Flavia Rainone
  */
 public class MdbDeliveryMergingProcessor extends AbstractMergingProcessor<MessageDrivenComponentDescription> {
 
@@ -80,18 +81,24 @@ public class MdbDeliveryMergingProcessor extends AbstractMergingProcessor<Messag
             return;
         }
         Boolean deliveryActive = null;
-        final List<EJBBoundMdbDeliveryMetaData> deliveryActiveDataList = assemblyDescriptor.getAny(EJBBoundMdbDeliveryMetaData.class);
-        if (deliveryActiveDataList != null) {
-            for (EJBBoundMdbDeliveryMetaData deliveryActiveData : deliveryActiveDataList) {
-                if ("*".equals(deliveryActiveData.getEjbName()) && deliveryActive == null) {
-                    deliveryActive = deliveryActiveData.isDeliveryActive();
-                } else if (ejbName.equals(deliveryActiveData.getEjbName())) {
-                    deliveryActive = deliveryActiveData.isDeliveryActive();
+        String deliveryGroup = null;
+        final List<EJBBoundMdbDeliveryMetaData> deliveryMetaDataList = assemblyDescriptor.getAny(EJBBoundMdbDeliveryMetaData.class);
+        if (deliveryMetaDataList != null) {
+            for (EJBBoundMdbDeliveryMetaData deliveryMetaData : deliveryMetaDataList) {
+                if ("*".equals(deliveryMetaData.getEjbName()) && deliveryActive == null && deliveryGroup == null) {
+                    deliveryActive = deliveryMetaData.isDeliveryActive();
+                    deliveryGroup = deliveryMetaData.getDeliveryGroup();
+                } else if (ejbName.equals(deliveryMetaData.getEjbName())) {
+                    deliveryActive = deliveryMetaData.isDeliveryActive();
+                    deliveryGroup = deliveryMetaData.getDeliveryGroup();
                 }
             }
         }
-
-        if (deliveryActive != null) {
+        // delivery group configuration has precedence over deliveryActive
+        if (deliveryGroup != null) {
+            componentConfiguration.setDeliveryGroup(deliveryGroup);
+        }
+        else if (deliveryActive != null) {
             componentConfiguration.setDeliveryActive(deliveryActive);
         }
     }
