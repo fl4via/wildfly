@@ -26,20 +26,18 @@ import org.jboss.metadata.ejb.parser.jboss.ejb3.AbstractEJBBoundMetaData;
 
 /**
  * @author Jaikiran Pai
- * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
+ * @author Flavia Rainone
  */
 public class EJBBoundClusteringMetaData extends AbstractEJBBoundMetaData {
-    private static final long serialVersionUID = 509813132897569189L;
 
-    public static final String SINGLETON_BARRIER = "Singleton barrier";
+    private static final long serialVersionUID = 4149623336107841341L;
+    private boolean singleton;
 
-    private String barrier;
-
-    public void setBarrier(String barrier) {
-        this.barrier = barrier;
+    public void setClusteredSingleton() {
+        this.singleton = true;
     }
 
-    public String getBarrier() {
-        return barrier;
+    public boolean isClusteredSingleton() {
+        return singleton;
     }
 }

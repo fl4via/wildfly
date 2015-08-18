@@ -24,19 +24,17 @@ package org.jboss.as.ejb3.subsystem;
 
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
-import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.ServiceRemoveStepHandler;
 import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.dmr.ModelNode;
 
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
 import static org.jboss.as.ejb3.subsystem.ClusterBarrierResourceDefinition.BARRIER_CAPABILITY;
 
 /**
  * Handler to remove clustering singleton barrier definition and corresponding service.
  *
  * @author Flavia Rainone
- */ // TODO shouldn' t remove the DUP?
+ */
 public class ClusterBarrierRemove extends ServiceRemoveStepHandler {
 
     public static final ClusterBarrierRemove INSTANCE = new ClusterBarrierRemove();
@@ -45,27 +43,11 @@ public class ClusterBarrierRemove extends ServiceRemoveStepHandler {
         super(BARRIER_CAPABILITY.getCapabilityServiceName(), ClusterBarrierAdd.INSTANCE, BARRIER_CAPABILITY);
     }
 
-    @Override
-    protected void performRuntime(OperationContext context, ModelNode operation, ModelNode model) /* throws OperationFailedException*/ {
-        final String fulfills;
-        try {
-            fulfills = ClusterBarrierResourceDefinition.FULFILLS.resolveModelAttribute(context, model).asString();
-        } catch (OperationFailedException e) {
-            // FIXME shouldn' t super class throw OperationFailedException
-            throw new RuntimeException(e);
-        }
-        if (fulfills != null) {
-            context.removeService(BARRIER_CAPABILITY.getCapabilityServiceName(fulfills));
-        }
-        super.performRuntime(context, operation, model);
-    }
-
-    @Override
+   @Override
     protected void recoverServices(final OperationContext context, final ModelNode operation, final ModelNode model)
             throws OperationFailedException {
         try {
-            final PathAddress address = PathAddress.pathAddress(operation.require(OP_ADDR));
-            ClusterBarrierAdd.INSTANCE.installServices(context, model);
+            ClusterBarrierAdd.INSTANCE.installServices(context);
         } catch (OperationFailedException e) {
             throw ControllerLogger.ROOT_LOGGER.failedToRecoverServices(e);
         }
