@@ -33,8 +33,8 @@ public class EJBBoundClusteringMetaData extends AbstractEJBBoundMetaData {
     private static final long serialVersionUID = 4149623336107841341L;
     private boolean singleton;
 
-    public void setClusteredSingleton() {
-        this.singleton = true;
+    public void setClusteredSingleton(boolean singleton) {
+        this.singleton = singleton;
     }
 
     public boolean isClusteredSingleton() {

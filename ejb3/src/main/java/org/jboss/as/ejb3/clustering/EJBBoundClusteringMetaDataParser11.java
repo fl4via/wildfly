@@ -67,9 +67,12 @@ public class EJBBoundClusteringMetaDataParser11 extends AbstractEJBBoundMetaData
                     EjbLogger.ROOT_LOGGER.deprecatedNamespace(NAMESPACE_URI_1_1, CLUSTERED_ELEMENT);
                     break;
                 case SINGLETON_ELEMENT:
-                    metaData.setClusteredSingleton();
                     requireNoAttributes(reader);
-                    getElementText(reader, propertyReplacer);
+                    final String text = getElementText(reader, propertyReplacer);
+                    if (text != null) {
+                        final boolean isClusteredSingleton = Boolean.parseBoolean(text.trim());
+                        metaData.setClusteredSingleton(isClusteredSingleton);
+                    }
                     break;
                 default:
                     throw unexpectedElement(reader);
