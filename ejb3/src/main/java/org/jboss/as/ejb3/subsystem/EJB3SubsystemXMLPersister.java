@@ -320,8 +320,13 @@ public class EJB3SubsystemXMLPersister implements XMLElementWriter<SubsystemMars
             //<delivery-groups>
             writer.writeStartElement(EJB3SubsystemXMLElement.DELIVERY_GROUPS.getLocalName());
             for (Property property : mdbModelNode.get(EJB3SubsystemModel.MDB_DELIVERY_GROUP).asPropertyList()) {
+                // <delivery-group
                 writer.writeStartElement(EJB3SubsystemXMLElement.DELIVERY_GROUP.getLocalName());
+                // name=
                 writer.writeAttribute(EJB3SubsystemXMLAttribute.NAME.getLocalName(), property.getName());
+                // active=
+                MdbDeliveryGroupResourceDefinition.ACTIVE.marshallAsAttribute(mdbModelNode.get(EJB3SubsystemModel.MDB_DELIVERY_GROUP, property.getName()), writer);
+                // />
                 writer.writeEndElement();
             }
             //</delivery-groups>

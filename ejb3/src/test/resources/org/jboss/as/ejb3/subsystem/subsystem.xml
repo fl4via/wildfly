@@ -10,8 +10,9 @@
         <resource-adapter-ref resource-adapter-name="${ejb.resource-adapter-name:activemq-ra.rar}"/>
         <bean-instance-pool-ref pool-name="mdb-strict-max-pool" />
         <delivery-groups>
-            <delivery-group name="1"/>
-            <delivery-group name="2"/>
+            <delivery-group name="1" active="true"/>
+            <delivery-group name="2" active="false"/>
+            <delivery-group name="3"/>
         </delivery-groups>
     </mdb>
     <entity-bean>

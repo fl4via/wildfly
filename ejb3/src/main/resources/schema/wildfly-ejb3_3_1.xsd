@@ -189,6 +189,7 @@
 
     <xs:complexType name="delivery-groupType">
         <xs:attribute name="name" use="required" type="xs:string"/>
+        <xs:attribute name="active" use="optional" type="xs:boolean" default="true"/>
     </xs:complexType>
 
     <xs:complexType name="poolsType">

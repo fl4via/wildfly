@@ -28,6 +28,7 @@ import org.jboss.as.ee.component.EEModuleConfiguration;
 import org.jboss.as.ejb3.component.messagedriven.MdbDeliveryControllerService;
 import org.jboss.as.ejb3.component.messagedriven.MessageDrivenComponent;
 import org.jboss.as.ejb3.component.messagedriven.MessageDrivenComponentDescription;
+import org.jboss.as.ejb3.logging.EjbLogger;
 import org.jboss.as.ejb3.subsystem.MdbDeliveryGroupResourceDefinition;
 import org.jboss.as.server.deployment.DeploymentPhaseContext;
 import org.jboss.as.server.deployment.DeploymentUnit;
@@ -73,7 +74,12 @@ public class MdbDeliveryDependenciesProcessor implements DeploymentUnitProcessor
                                     mdbDeliveryControllerService.getMdbComponent())
                             .setInitialMode(Mode.PASSIVE);
                     if (deliveryGroup != null) {
-                        builder.addDependency(MdbDeliveryGroupResourceDefinition.getDeliveryGroupServiceName(deliveryGroup));
+                        final ServiceName deliveyGroupServiceName = MdbDeliveryGroupResourceDefinition.getDeliveryGroupServiceName(
+                                deliveryGroup);
+                        if (phaseContext.getServiceRegistry().getService(deliveyGroupServiceName) == null) {
+                            throw EjbLogger.DEPLOYMENT_LOGGER.missingMdbDeliveryGroup(deliveryGroup);
+                        }
+                        builder.addDependency(deliveyGroupServiceName);
                     }
                     builder.install();
                 }

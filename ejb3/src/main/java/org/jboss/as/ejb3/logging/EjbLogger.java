@@ -3080,4 +3080,7 @@ public interface EjbLogger extends BasicLogger {
     @Message(id = 476, value = "MDB delivery stopped: %s,%s")
     void mdbDeliveryStopped(String appName, String componentName);
 
+    @Message(id = 477, value = "MDB delivery group is missing: %s")
+    DeploymentUnitProcessingException missingMdbDeliveryGroup(String deliveryGroupName);
+
 }

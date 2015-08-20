@@ -22,8 +22,17 @@
 
 package org.jboss.as.ejb3.subsystem;
 
+import org.jboss.as.controller.AbstractWriteAttributeHandler;
+import org.jboss.as.controller.OperationContext;
+import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathElement;
+import org.jboss.as.controller.SimpleAttributeDefinition;
+import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleResourceDefinition;
+import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.dmr.ModelNode;
+import org.jboss.dmr.ModelType;
+import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
 
 /**
@@ -34,6 +43,9 @@ import org.jboss.msc.service.ServiceName;
 public class MdbDeliveryGroupResourceDefinition extends SimpleResourceDefinition {
 
     private static final ServiceName DELIVERY_GROUP_SERVICE_NAME = ServiceName.of("org", "wildfly", "ejb3", "mdb", "delivery", "group");
+    public static final SimpleAttributeDefinition ACTIVE = new SimpleAttributeDefinitionBuilder(
+            EJB3SubsystemModel.MDB_DELVIERY_GROUP_ACTIVE, ModelType.BOOLEAN, true).setDefaultValue(new ModelNode(true))
+            .build();
 
     public static final MdbDeliveryGroupResourceDefinition INSTANCE = new MdbDeliveryGroupResourceDefinition();
 
@@ -45,6 +57,34 @@ public class MdbDeliveryGroupResourceDefinition extends SimpleResourceDefinition
 
     public static final ServiceName getDeliveryGroupServiceName(String deliveryGroupName) {
         return DELIVERY_GROUP_SERVICE_NAME.append(deliveryGroupName);
+    }
+
+    @Override
+    public void registerAttributes(ManagementResourceRegistration resourceRegistration) {
+        resourceRegistration.registerReadWriteAttribute(ACTIVE, null,
+                new AbstractWriteAttributeHandler<Void>() {
+                    @Override protected boolean applyUpdateToRuntime(OperationContext context, ModelNode operation,
+                            String attributeName, ModelNode resolvedValue, ModelNode currentValue,
+                            HandbackHolder<Void> handbackHolder) throws OperationFailedException {
+                        updateDeliveryGroup(context, currentValue, resolvedValue);
+                        return false;
+                    }
+
+                    @Override protected void revertUpdateToRuntime(OperationContext context, ModelNode operation,
+                            String attributeName, ModelNode valueToRestore, ModelNode valueToRevert, Void handback)
+                            throws OperationFailedException {
+                        updateDeliveryGroup(context, valueToRevert, valueToRestore);
+                    }
+
+                    protected void updateDeliveryGroup(OperationContext context, ModelNode currentValue, ModelNode resolvedValue) throws OperationFailedException {
+                        if (currentValue.equals(resolvedValue)) {
+                            return;
+                        }
+                        String groupName = context.getCurrentAddress().getLastElement().getValue();
+                        context.getServiceRegistry(true).getRequiredService(getDeliveryGroupServiceName(groupName)).setMode(
+                                resolvedValue.asBoolean() ? ServiceController.Mode.ACTIVE : ServiceController.Mode.NEVER);
+                    }
+                });
     }
 
 }

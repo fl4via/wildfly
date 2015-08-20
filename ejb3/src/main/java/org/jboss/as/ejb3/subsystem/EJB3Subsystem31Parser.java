@@ -104,6 +104,9 @@ public class EJB3Subsystem31Parser extends EJB3Subsystem30Parser {
                             case NAME:
                                 groupName = value;
                                 break;
+                            case ACTIVE:
+                                MdbDeliveryGroupResourceDefinition.ACTIVE.parseAndSetParameter(reader.getAttributeValue(i), operation, reader);
+                                break;
                             default:
                                 throw unexpectedAttribute(reader, i);
                         }

@@ -29,6 +29,7 @@ import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.dmr.ModelNode;
 import org.jboss.msc.service.Service;
+import org.jboss.msc.service.ServiceController;
 
 import static org.jboss.as.ejb3.subsystem.MdbDeliveryGroupResourceDefinition.getDeliveryGroupServiceName;
 
@@ -42,17 +43,19 @@ public class MdbDeliveryGroupAdd extends AbstractAddStepHandler {
     static final MdbDeliveryGroupAdd INSTANCE = new MdbDeliveryGroupAdd();
 
     private MdbDeliveryGroupAdd() {
-        super();
+        super(MdbDeliveryGroupResourceDefinition.ACTIVE);
     }
 
     @Override
     protected void performRuntime(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
-        installServices(context, operation);
+        installServices(context, operation, model);
     }
 
-    protected void installServices(final OperationContext context, final ModelNode operation) throws OperationFailedException {
+    protected void installServices(final OperationContext context, final ModelNode operation, final ModelNode model) throws OperationFailedException {
         final String groupName = PathAddress.pathAddress(operation.get(ModelDescriptionConstants.ADDRESS)).getLastElement()
                 .getValue();
-        context.getServiceTarget().addService(getDeliveryGroupServiceName(groupName), Service.NULL).install();
+        final boolean active = MdbDeliveryGroupResourceDefinition.ACTIVE.resolveModelAttribute(context, model).asBoolean();
+        context.getServiceTarget().addService(getDeliveryGroupServiceName(groupName), Service.NULL)
+                .setInitialMode(active? ServiceController.Mode.ACTIVE: ServiceController.Mode.NEVER).install();
     }
 }

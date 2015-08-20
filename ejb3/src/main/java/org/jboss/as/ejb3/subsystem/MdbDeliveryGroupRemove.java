@@ -25,8 +25,6 @@ package org.jboss.as.ejb3.subsystem;
 import org.jboss.as.controller.AbstractRemoveStepHandler;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
-import org.jboss.as.controller.PathAddress;
-import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.dmr.ModelNode;
 
@@ -45,16 +43,14 @@ public class MdbDeliveryGroupRemove extends AbstractRemoveStepHandler {
 
     @Override
     protected void performRuntime(OperationContext context, ModelNode operation, ModelNode model) {
-        final String groupName = PathAddress.pathAddress(operation.get(ModelDescriptionConstants.ADDRESS)).getLastElement()
-                .getValue();
-        context.removeService(MdbDeliveryGroupResourceDefinition.getDeliveryGroupServiceName(groupName));
+        context.reloadRequired();
     }
 
     @Override
     protected void recoverServices(final OperationContext context, final ModelNode operation, final ModelNode model)
             throws OperationFailedException {
         try {
-            MdbDeliveryGroupAdd.INSTANCE.installServices(context, operation);
+            MdbDeliveryGroupAdd.INSTANCE.installServices(context, operation, model);
         } catch (OperationFailedException e) {
             throw ControllerLogger.ROOT_LOGGER.failedToRecoverServices(e);
         }
