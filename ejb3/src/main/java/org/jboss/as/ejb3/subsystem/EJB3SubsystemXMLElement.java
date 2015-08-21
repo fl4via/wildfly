@@ -93,7 +93,6 @@ public enum EJB3SubsystemXMLElement {
     LOG_SYSTEM_EXCEPTIONS(EJB3SubsystemModel.LOG_SYSTEM_EXCEPTIONS),
     DELIVERY_GROUPS("delivery-groups"),
     DELIVERY_GROUP("delivery-group"),
-    CLUSTER_BARRIER("cluster-barrier")
     ;
 
     private final String name;

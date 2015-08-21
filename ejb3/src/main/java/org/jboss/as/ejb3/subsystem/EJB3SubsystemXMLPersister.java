@@ -261,10 +261,6 @@ public class EJB3SubsystemXMLPersister implements XMLElementWriter<SubsystemMars
             writer.writeAttribute(EJB3SubsystemXMLAttribute.VALUE.getLocalName(), model.get(EJB3SubsystemModel.LOG_SYSTEM_EXCEPTIONS).asString());
             writer.writeEndElement();
         }
-
-        if (model.hasDefined(SERVICE) && model.get(SERVICE).has(CLUSTER_BARRIER)) {
-            writer.writeEmptyElement(EJB3SubsystemXMLElement.CLUSTER_BARRIER.getLocalName());
-        }
     }
 
     private void writeIIOP(final XMLExtendedStreamWriter writer, final ModelNode model) throws XMLStreamException {

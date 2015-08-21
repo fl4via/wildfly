@@ -32,6 +32,7 @@ import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleResourceDefinition;
 import org.jboss.as.controller.SubsystemRegistration;
 import org.jboss.as.controller.access.management.SensitiveTargetAccessConstraintDefinition;
+import org.jboss.as.controller.capability.RuntimeCapability;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.operations.common.GenericSubsystemDescribeHandler;
 import org.jboss.as.controller.operations.validation.LongRangeValidator;
@@ -46,6 +47,7 @@ import org.jboss.as.controller.transform.description.RejectAttributeChecker;
 import org.jboss.as.controller.transform.description.ResourceTransformationDescriptionBuilder;
 import org.jboss.as.controller.transform.description.TransformationDescription;
 import org.jboss.as.controller.transform.description.TransformationDescriptionBuilder;
+import org.jboss.as.ejb3.clustering.ClusteredSingletonService;
 import org.jboss.as.ejb3.deployment.processors.EJBDefaultSecurityDomainProcessor;
 import org.jboss.as.ejb3.deployment.processors.merging.MissingMethodPermissionsDenyAccessMergingProcessor;
 import org.jboss.as.ejb3.logging.EjbLogger;
@@ -54,6 +56,7 @@ import org.jboss.as.threads.ThreadsServices;
 import org.jboss.as.threads.UnboundedQueueThreadPoolResourceDefinition;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
+import org.wildfly.clustering.singleton.SingletonPolicy;
 
 /**
  * {@link org.jboss.as.controller.ResourceDefinition} for the EJB3 subsystem's root management resource.
@@ -155,6 +158,10 @@ public class EJB3SubsystemRootResourceDefinition extends SimpleResourceDefinitio
                     .setAllowExpression(true)
                     .setDefaultValue(new ModelNode(true))
                     .build();
+
+    public static final RuntimeCapability<Void> CLUSTERED_SINGLETON_CAPABILITY =  RuntimeCapability.Builder.of(
+            "org.wildfly.ejb3.clustered.singleton", ClusteredSingletonService.class)
+            .addRequirements(SingletonPolicy.CAPABILITY_NAME.concat(".default")).build();
 
     private static final EJBDefaultSecurityDomainProcessor defaultSecurityDomainDeploymentProcessor = new EJBDefaultSecurityDomainProcessor(null);
     private static final MissingMethodPermissionsDenyAccessMergingProcessor missingMethodPermissionsDenyAccessMergingProcessor = new MissingMethodPermissionsDenyAccessMergingProcessor();
@@ -265,9 +272,6 @@ public class EJB3SubsystemRootResourceDefinition extends SimpleResourceDefinitio
 
         // subsystem=ejb3/mdb-delivery-group=*
         subsystemRegistration.registerSubModel(MdbDeliveryGroupResourceDefinition.INSTANCE);
-
-        // subsystem=ejb3/service=singletonbarrier
-        subsystemRegistration.registerSubModel(ClusterBarrierResourceDefinition.INSTANCE);
     }
 
     static void registerTransformers(SubsystemRegistration subsystemRegistration) {

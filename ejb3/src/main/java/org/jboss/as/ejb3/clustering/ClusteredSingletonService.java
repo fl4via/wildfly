@@ -30,25 +30,22 @@ import org.jboss.msc.service.StopContext;
 import static org.jboss.as.ejb3.logging.EjbLogger.ROOT_LOGGER;
 
 /**
- * A service installed as a singleton, it is UP only on the master node of a the singleton barrier.
+ * A service installed as a singleton, it is UP only on the master node of a the cluster.
  *
- * @author <a href="mailto:frainone@redhat.com">Flavia Rainone</a>
+ * @author Flavia Rainone
  */
-public class SingletonBarrierService implements Service<String> {
-    //public static final ServiceName SERVICE_NAME = ClusterBarrierResourceDefinition.BASIC_CAPABILITY.getCapabilityServiceName("singleton");
-    // the name of the service that will be UP only in the singleton node of the cluster
-    //public static final ServiceName SINGLETON_SERVICE_NAME = SERVICE_NAME.append("service");
+public class ClusteredSingletonService implements Service<Void> {
 
     public void start(StartContext context) throws StartException {
-        ROOT_LOGGER.info("this node is now the active cluster singleton");
+        ROOT_LOGGER.logClusterSigletonNode();
     }
 
     public void stop(StopContext context) {
-        ROOT_LOGGER.info("this node is no longer the active cluster singleton");
+        ROOT_LOGGER.logNoLongerClusterSigletonNode();
     }
 
     @Override
-    public String getValue() {
-        return "singleton barrier";
+    public Void getValue() {
+        return null;
     }
 }

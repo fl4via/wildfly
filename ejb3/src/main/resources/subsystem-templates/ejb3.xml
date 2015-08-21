@@ -39,7 +39,6 @@
        <default-security-domain value="other"/>
        <default-missing-method-permissions-deny-access value="true" />
        <log-system-exceptions value="true" />
-       <?CLUSTER-BARRIER?>
    </subsystem>
    <supplement name="default">
       <replacement placeholder="STATEFUL-BEAN">
@@ -61,10 +60,5 @@
       <replacement placeholder="STATEFUL-BEAN">
          <stateful default-access-timeout="5000" cache-ref="distributable" passivation-disabled-cache-ref="simple"/>
       </replacement>
-   </supplement>
-   <supplement name="full-ha" includes="full ha">
-       <replacement placeholder="CLUSTER-BARRIER">
-           <cluster-barrier/>
-       </replacement>
    </supplement>
 </config>
