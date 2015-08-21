@@ -61,4 +61,6 @@
          <stateful default-access-timeout="5000" cache-ref="distributable" passivation-disabled-cache-ref="simple"/>
       </replacement>
    </supplement>
+   <supplement name="full-ha">
+   </supplement>
 </config>
