@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2012, Red Hat, Inc., and individual contributors
+ * Copyright 2016, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -26,14 +26,14 @@ import org.jboss.as.ee.component.interceptors.InvocationType;
 import org.jboss.as.ejb3.component.EJBComponent;
 import org.jboss.as.ejb3.component.interceptors.AbstractEJBInterceptor;
 import org.jboss.as.ejb3.logging.EjbLogger;
+import org.jboss.as.ejb3.suspend.EJBSuspendHandlerService;
 import org.jboss.invocation.InterceptorContext;
-import org.wildfly.extension.requestcontroller.ControlPoint;
-import org.wildfly.extension.requestcontroller.RunResult;
 
 /**
  * An interceptor that allows the component to shutdown gracefully.
  *
  * @author Stuart Douglas
+ * @author Flavia Rainone
  */
 public class EjbSuspendInterceptor extends AbstractEJBInterceptor {
 
@@ -43,16 +43,14 @@ public class EjbSuspendInterceptor extends AbstractEJBInterceptor {
         if (invocation != InvocationType.REMOTE && invocation != InvocationType.MESSAGE_DELIVERY) {
             return context.proceed();
         }
-        EJBComponent component = getComponent(context, EJBComponent.class);
-        ControlPoint entryPoint = component.getControlPoint();
-        RunResult result = entryPoint.beginRequest();
-        if (result == RunResult.REJECTED) {
+        final EJBSuspendHandlerService suspendHandler = getComponent(context, EJBComponent.class).getEjbSuspendHandlerService();
+        if (!suspendHandler.acceptInvocation(context)) {
             throw EjbLogger.ROOT_LOGGER.containerSuspended();
         }
         try {
             return context.proceed();
         } finally {
-            entryPoint.requestComplete();
+            suspendHandler.invocationComplete();
         }
     }
 }

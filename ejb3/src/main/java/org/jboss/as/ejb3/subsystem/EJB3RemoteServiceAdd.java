@@ -36,6 +36,7 @@ import org.jboss.as.ejb3.logging.EjbLogger;
 import org.jboss.as.ejb3.remote.EJBRemoteConnectorService;
 import org.jboss.as.ejb3.remote.EJBRemoteTransactionsRepository;
 import org.jboss.as.ejb3.remote.EJBRemotingConnectorClientMappingsEntryProviderService;
+import org.jboss.as.ejb3.suspend.EJBSuspendHandlerService;
 import org.jboss.as.ejb3.remote.RegistryCollector;
 import org.jboss.as.ejb3.remote.RegistryCollectorService;
 import org.jboss.as.ejb3.remote.RegistryInstallerService;
@@ -94,6 +95,7 @@ public class EJB3RemoteServiceAdd extends AbstractAddStepHandler {
                 .addDependency(UserTransactionService.SERVICE_NAME, UserTransaction.class, transactionsRepository.getUserTransactionInjector())
                 .addDependency(TxnServices.JBOSS_TXN_ARJUNA_RECOVERY_MANAGER, RecoveryManagerService.class, transactionsRepository.getRecoveryManagerInjector())
                 .addDependency(TxnServices.JBOSS_TXN_XA_TERMINATOR, ExtendedJBossXATerminator.class, transactionsRepository.getXATerminatorInjector())
+                .addDependency(EJBSuspendHandlerService.SERVICE_NAME, EJBSuspendHandlerService.class, transactionsRepository.getEJBSuspendHandlerServiceInjector())
                 .setInitialMode(ServiceController.Mode.ACTIVE)
                 .install();
 

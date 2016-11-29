@@ -22,25 +22,6 @@
 
 package org.jboss.as.ejb3.component;
 
-import javax.ejb.TimerService;
-import javax.ejb.TransactionAttributeType;
-import javax.ejb.TransactionManagementType;
-import javax.transaction.TransactionManager;
-import javax.transaction.TransactionSynchronizationRegistry;
-import javax.transaction.UserTransaction;
-
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
-
 import org.jboss.as.core.security.ServerSecurityManager;
 import org.jboss.as.ee.component.BasicComponentCreateService;
 import org.jboss.as.ee.component.ComponentConfiguration;
@@ -50,6 +31,7 @@ import org.jboss.as.ejb3.component.interceptors.ShutDownInterceptorFactory;
 import org.jboss.as.ejb3.component.messagedriven.MessageDrivenComponentDescription;
 import org.jboss.as.ejb3.deployment.ApplicationExceptions;
 import org.jboss.as.ejb3.remote.EJBRemoteTransactionsRepository;
+import org.jboss.as.ejb3.suspend.EJBSuspendHandlerService;
 import org.jboss.as.ejb3.security.EJBSecurityMetaData;
 import org.jboss.as.ejb3.subsystem.ApplicationSecurityDomainService.ApplicationSecurityDomain;
 import org.jboss.as.ejb3.subsystem.ApplicationSecurityDomainService.Registration;
@@ -66,6 +48,24 @@ import org.jboss.msc.service.StopContext;
 import org.jboss.msc.value.InjectedValue;
 import org.wildfly.extension.requestcontroller.ControlPoint;
 import org.wildfly.security.auth.server.SecurityDomain;
+
+import javax.ejb.TimerService;
+import javax.ejb.TransactionAttributeType;
+import javax.ejb.TransactionManagementType;
+import javax.transaction.TransactionManager;
+import javax.transaction.TransactionSynchronizationRegistry;
+import javax.transaction.UserTransaction;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 
 /**
  * @author Jaikiran Pai
@@ -111,6 +111,7 @@ public class EJBComponentCreateService extends BasicComponentCreateService {
     private final InjectedValue<AtomicBoolean> exceptionLoggingEnabled = new InjectedValue<>();
     private final InjectedValue<ApplicationSecurityDomain> applicationSecurityDomain = new InjectedValue<>();
     private final InjectedValue<Function> identityOutflowFunction = new InjectedValue<>();
+    private final InjectedValue<EJBSuspendHandlerService> ejbSuspendHandler = new InjectedValue<>();
 
     private final ShutDownInterceptorFactory shutDownInterceptorFactory;
 
@@ -361,6 +362,14 @@ public class EJBComponentCreateService extends BasicComponentCreateService {
     EJBRemoteTransactionsRepository getEJBRemoteTransactionsRepository() {
         // remote tx repo is applicable only for remote views, hence the optionalValue
         return this.ejbRemoteTransactionsRepository.getOptionalValue();
+    }
+
+    public Injector<EJBSuspendHandlerService> getEJBSuspendHandlerInjector() {
+        return this.ejbSuspendHandler;
+    }
+
+    EJBSuspendHandlerService getEJBSuspendHandler() {
+        return this.ejbSuspendHandler.getValue();
     }
 
     Injector<TransactionManager> getTransactionManagerInjector() {

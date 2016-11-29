@@ -1,16 +1,11 @@
 package org.jboss.as.ejb3.deployment.processors;
 
-import java.util.EnumSet;
-import java.util.Set;
-
 import org.jboss.as.ee.component.Attachments;
 import org.jboss.as.ee.component.ComponentConfiguration;
 import org.jboss.as.ee.component.ComponentConfigurator;
 import org.jboss.as.ee.component.ComponentDescription;
-import org.jboss.as.ee.component.DependencyConfigurator;
 import org.jboss.as.ee.component.ViewConfiguration;
 import org.jboss.as.ee.component.interceptors.InterceptorOrder;
-import org.jboss.as.ejb3.component.EJBComponentCreateService;
 import org.jboss.as.ejb3.component.EJBComponentDescription;
 import org.jboss.as.ejb3.component.EJBViewConfiguration;
 import org.jboss.as.ejb3.component.MethodIntf;
@@ -18,10 +13,11 @@ import org.jboss.as.server.deployment.DeploymentPhaseContext;
 import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUnitProcessor;
 import org.jboss.invocation.ImmediateInterceptorFactory;
-import org.jboss.msc.service.ServiceBuilder;
-import org.wildfly.extension.requestcontroller.ControlPoint;
 import org.wildfly.extension.requestcontroller.ControlPointService;
 import org.wildfly.extension.requestcontroller.RequestControllerActivationMarker;
+
+import java.util.EnumSet;
+import java.util.Set;
 
 
 /**
@@ -64,14 +60,6 @@ public class EJBComponentSuspendDeploymentUnitProcessor implements DeploymentUni
                                 view.addViewInterceptor(factory, InterceptorOrder.View.GRACEFUL_SHUTDOWN);
                             }
                         }
-
-                        configuration.getCreateDependencies().add(new DependencyConfigurator<EJBComponentCreateService>() {
-                            @Override
-                            public void configureDependency(ServiceBuilder<?> serviceBuilder, EJBComponentCreateService service) {
-                                serviceBuilder.addDependency(ControlPointService.serviceName(topLevelName, entryPoint), ControlPoint.class, service.getControlPointInjector());
-                            }
-                        });
-
                     }
                 });
 
