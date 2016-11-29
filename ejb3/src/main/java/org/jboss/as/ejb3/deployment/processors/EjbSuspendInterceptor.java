@@ -26,6 +26,9 @@ import org.jboss.as.ee.component.interceptors.InvocationType;
 import org.jboss.as.ejb3.component.EJBComponent;
 import org.jboss.as.ejb3.component.interceptors.AbstractEJBInterceptor;
 import org.jboss.as.ejb3.logging.EjbLogger;
+import org.jboss.as.ejb3.remote.EJBRemoteTransactionsRepository;
+import org.jboss.ejb.client.AttachmentKeys;
+import org.jboss.ejb.client.TransactionID;
 import org.jboss.invocation.InterceptorContext;
 import org.wildfly.extension.requestcontroller.ControlPoint;
 import org.wildfly.extension.requestcontroller.RunResult;
@@ -47,7 +50,15 @@ public class EjbSuspendInterceptor extends AbstractEJBInterceptor {
         ControlPoint entryPoint = component.getControlPoint();
         RunResult result = entryPoint.beginRequest();
         if (result == RunResult.REJECTED) {
-            throw EjbLogger.ROOT_LOGGER.containerSuspended();
+            final EJBRemoteTransactionsRepository transactionsRepository = component.getEjbRemoteTransactionsRepository();
+            // double check: we need to make sure that there are no open transactions involved in this invocation
+            if (transactionsRepository.isSuspended() ||
+                    // retrieve attachment only when transactions repository is not suspended, meaning we are mid-suspension
+                    !transactionsRepository.isRemoteTransactionActive((TransactionID)
+                            context.getPrivateData(AttachmentKeys.TRANSACTION_ID_KEY))) {
+                throw EjbLogger.ROOT_LOGGER.containerSuspended();
+            }
+            entryPoint.forceBeginRequest();
         }
         try {
             return context.proceed();

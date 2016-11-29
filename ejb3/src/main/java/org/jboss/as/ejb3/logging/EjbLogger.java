@@ -24,46 +24,6 @@
 
 package org.jboss.as.ejb3.logging;
 
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.Method;
-import java.rmi.RemoteException;
-import java.sql.SQLException;
-import java.util.Date;
-import java.util.Set;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
-import javax.ejb.ConcurrentAccessTimeoutException;
-import javax.ejb.EJBAccessException;
-import javax.ejb.EJBException;
-import javax.ejb.EJBTransactionRequiredException;
-import javax.ejb.IllegalLoopbackException;
-import javax.ejb.LockType;
-import javax.ejb.NoMoreTimeoutsException;
-import javax.ejb.NoSuchEJBException;
-import javax.ejb.NoSuchEntityException;
-import javax.ejb.NoSuchObjectLocalException;
-import javax.ejb.ObjectNotFoundException;
-import javax.ejb.RemoveException;
-import javax.ejb.ScheduleExpression;
-import javax.ejb.Timer;
-import javax.ejb.TimerHandle;
-import javax.ejb.TransactionAttributeType;
-import javax.interceptor.InvocationContext;
-import javax.naming.Context;
-import javax.resource.ResourceException;
-import javax.resource.spi.UnavailableException;
-import javax.resource.spi.endpoint.MessageEndpoint;
-import javax.security.auth.callback.Callback;
-import javax.security.auth.callback.UnsupportedCallbackException;
-import javax.transaction.RollbackException;
-import javax.transaction.Transaction;
-import javax.transaction.xa.Xid;
-import javax.xml.stream.Location;
-import javax.xml.stream.XMLStreamException;
-
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
@@ -116,10 +76,50 @@ import org.jboss.remoting3.Channel;
 import org.jboss.remoting3.MessageInputStream;
 import org.wildfly.clustering.group.Group;
 
+import javax.ejb.ConcurrentAccessTimeoutException;
+import javax.ejb.EJBAccessException;
+import javax.ejb.EJBException;
+import javax.ejb.EJBTransactionRequiredException;
+import javax.ejb.IllegalLoopbackException;
+import javax.ejb.LockType;
+import javax.ejb.NoMoreTimeoutsException;
+import javax.ejb.NoSuchEJBException;
+import javax.ejb.NoSuchEntityException;
+import javax.ejb.NoSuchObjectLocalException;
+import javax.ejb.ObjectNotFoundException;
+import javax.ejb.RemoveException;
+import javax.ejb.ScheduleExpression;
+import javax.ejb.Timer;
+import javax.ejb.TimerHandle;
+import javax.ejb.TransactionAttributeType;
+import javax.interceptor.InvocationContext;
+import javax.naming.Context;
+import javax.resource.ResourceException;
+import javax.resource.spi.UnavailableException;
+import javax.resource.spi.endpoint.MessageEndpoint;
+import javax.security.auth.callback.Callback;
+import javax.security.auth.callback.UnsupportedCallbackException;
+import javax.transaction.RollbackException;
+import javax.transaction.Transaction;
+import javax.transaction.xa.XAException;
+import javax.transaction.xa.Xid;
+import javax.xml.stream.Location;
+import javax.xml.stream.XMLStreamException;
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.rmi.RemoteException;
+import java.sql.SQLException;
+import java.util.Date;
+import java.util.Set;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+import static org.jboss.logging.Logger.Level.DEBUG;
 import static org.jboss.logging.Logger.Level.ERROR;
 import static org.jboss.logging.Logger.Level.INFO;
 import static org.jboss.logging.Logger.Level.WARN;
-import static org.jboss.logging.Logger.Level.DEBUG;
 
 /**
  * @author <a href="mailto:Flemming.Harms@gmail.com">Flemming Harms</a>
@@ -3127,4 +3127,10 @@ public interface EjbLogger extends BasicLogger {
     @Message(id = 488, value = "Unauthenticated (anonymous) access to this EJB method is not authorized")
     SecurityException ejbAuthenticationRequired();
 
+    @Message(id = 489, value = "The transaction begin request was rejected as the container is suspended")
+    EJBException cannotBeginUserTransaction();
+
+    @LogMessage(level = WARN)
+    @Message(id = 490, value = "Unexpected XAException")
+    void unexpectedXAException(@Cause XAException exception);
 }
