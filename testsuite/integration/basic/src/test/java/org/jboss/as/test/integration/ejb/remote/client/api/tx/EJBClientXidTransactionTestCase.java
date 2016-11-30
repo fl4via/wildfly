@@ -22,15 +22,16 @@
 
 package org.jboss.as.test.integration.ejb.remote.client.api.tx;
 
-import javax.transaction.TransactionManager;
-import javax.transaction.TransactionSynchronizationRegistry;
-
 import com.arjuna.ats.internal.jta.transaction.arjunacore.TransactionManagerImple;
 import com.arjuna.ats.internal.jta.transaction.arjunacore.TransactionSynchronizationRegistryImple;
 import com.arjuna.ats.jta.common.jtaPropertyManager;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
+import org.jboss.arquillian.test.api.ArquillianResource;
+import org.jboss.as.arquillian.container.ManagementClient;
+import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
+import org.jboss.dmr.ModelNode;
 import org.jboss.ejb.client.EJBClient;
 import org.jboss.ejb.client.EJBClientTransactionContext;
 import org.jboss.ejb.client.StatelessEJBLocator;
@@ -44,6 +45,10 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import javax.transaction.Transaction;
+import javax.transaction.TransactionManager;
+import javax.transaction.TransactionSynchronizationRegistry;
 
 /**
  * @author Jaikiran Pai
@@ -61,6 +66,9 @@ public class EJBClientXidTransactionTestCase {
     private static TransactionManager txManager;
 
     private static TransactionSynchronizationRegistry txSyncRegistry;
+
+    @ArquillianResource
+    private ManagementClient managementClient;
 
     /**
      * Creates an EJB deployment
@@ -122,8 +130,9 @@ public class EJBClientXidTransactionTestCase {
      */
     @Test
     public void testSLSBMandatoryTx() throws Exception {
-        final StatelessEJBLocator<CMTRemote> cmtRemoteBeanLocator = new StatelessEJBLocator<CMTRemote>(CMTRemote.class, APP_NAME, MODULE_NAME, CMTBean.class.getSimpleName(), "");
-        final CMTRemote cmtRemoteBean = EJBClient.createProxy(cmtRemoteBeanLocator);
+        final StatelessEJBLocator<org.jboss.as.test.integration.ejb.remote.client.api.tx.CMTRemote> cmtRemoteBeanLocator = new StatelessEJBLocator<org.jboss.as.test.integration.ejb.remote.client.api.tx.CMTRemote>(
+                org.jboss.as.test.integration.ejb.remote.client.api.tx.CMTRemote.class, APP_NAME, MODULE_NAME, org.jboss.as.test.integration.ejb.remote.client.api.tx.CMTBean.class.getSimpleName(), "");
+        final org.jboss.as.test.integration.ejb.remote.client.api.tx.CMTRemote cmtRemoteBean = EJBClient.createProxy(cmtRemoteBeanLocator);
 
         // start the transaction
         txManager.begin();
@@ -140,11 +149,13 @@ public class EJBClientXidTransactionTestCase {
      */
     @Test
     public void testClientTransactionManagement() throws Exception {
-        final StatelessEJBLocator<RemoteBatch> batchBeanLocator = new StatelessEJBLocator<RemoteBatch>(RemoteBatch.class, APP_NAME, MODULE_NAME, BatchCreationBean.class.getSimpleName(), "");
-        final RemoteBatch batchBean = EJBClient.createProxy(batchBeanLocator);
+        final StatelessEJBLocator<org.jboss.as.test.integration.ejb.remote.client.api.tx.RemoteBatch> batchBeanLocator = new StatelessEJBLocator<org.jboss.as.test.integration.ejb.remote.client.api.tx.RemoteBatch>(
+                org.jboss.as.test.integration.ejb.remote.client.api.tx.RemoteBatch.class, APP_NAME, MODULE_NAME, org.jboss.as.test.integration.ejb.remote.client.api.tx.BatchCreationBean.class.getSimpleName(), "");
+        final org.jboss.as.test.integration.ejb.remote.client.api.tx.RemoteBatch batchBean = EJBClient.createProxy(batchBeanLocator);
 
-        final StatelessEJBLocator<BatchRetriever> batchRetrieverLocator = new StatelessEJBLocator<BatchRetriever>(BatchRetriever.class, APP_NAME, MODULE_NAME, BatchFetchingBean.class.getSimpleName(), "");
-        final BatchRetriever batchRetriever = EJBClient.createProxy(batchRetrieverLocator);
+        final StatelessEJBLocator<org.jboss.as.test.integration.ejb.remote.client.api.tx.BatchRetriever> batchRetrieverLocator = new StatelessEJBLocator<org.jboss.as.test.integration.ejb.remote.client.api.tx.BatchRetriever>(
+                org.jboss.as.test.integration.ejb.remote.client.api.tx.BatchRetriever.class, APP_NAME, MODULE_NAME, org.jboss.as.test.integration.ejb.remote.client.api.tx.BatchFetchingBean.class.getSimpleName(), "");
+        final org.jboss.as.test.integration.ejb.remote.client.api.tx.BatchRetriever batchRetriever = EJBClient.createProxy(batchRetrieverLocator);
 
         final String batchName = "Simple Batch";
         // create a batch
@@ -158,7 +169,7 @@ public class EJBClientXidTransactionTestCase {
         txManager.commit();
 
         // fetch the batch and make sure it contains the right state
-        final Batch batchAfterCreation = batchRetriever.fetchBatch(batchName);
+        final org.jboss.as.test.integration.ejb.remote.client.api.tx.Batch batchAfterCreation = batchRetriever.fetchBatch(batchName);
         Assert.assertNotNull("Batch was null after creation", batchAfterCreation);
         Assert.assertNull("Unexpected steps in batch, after creation", batchAfterCreation.getStepNames());
 
@@ -176,7 +187,7 @@ public class EJBClientXidTransactionTestCase {
         String successFullyCompletedSteps = step1;
 
         // fetch the batch and make sure it contains the right state
-        final Batch batchAfterStep1 = batchRetriever.fetchBatch(batchName);
+        final org.jboss.as.test.integration.ejb.remote.client.api.tx.Batch batchAfterStep1 = batchRetriever.fetchBatch(batchName);
         Assert.assertNotNull("Batch after step1 was null", batchAfterStep1);
         Assert.assertEquals("Unexpected steps in batch, after step1", successFullyCompletedSteps, batchAfterStep1.getStepNames());
 
@@ -192,7 +203,7 @@ public class EJBClientXidTransactionTestCase {
             txManager.rollback();
         }
 
-        final Batch batchAfterAppExceptionStep2 = batchRetriever.fetchBatch(batchName);
+        final org.jboss.as.test.integration.ejb.remote.client.api.tx.Batch batchAfterAppExceptionStep2 = batchRetriever.fetchBatch(batchName);
         Assert.assertNotNull("Batch after app exception step2 was null", batchAfterAppExceptionStep2);
         Assert.assertEquals("Unexpected steps in batch, after app exception step2", successFullyCompletedSteps, batchAfterAppExceptionStep2.getStepNames());
 
@@ -206,7 +217,7 @@ public class EJBClientXidTransactionTestCase {
             throw e;
         }
         // don't yet commit and try and retrieve the batch
-        final Batch batchAfterStep2BeforeCommit = batchRetriever.fetchBatch(batchName);
+        final org.jboss.as.test.integration.ejb.remote.client.api.tx.Batch batchAfterStep2BeforeCommit = batchRetriever.fetchBatch(batchName);
         Assert.assertNotNull("Batch after step2, before commit was null", batchAfterStep2BeforeCommit);
         Assert.assertEquals("Unexpected steps in batch, after step2 before commit", successFullyCompletedSteps, batchAfterStep2BeforeCommit.getStepNames());
 
@@ -216,7 +227,7 @@ public class EJBClientXidTransactionTestCase {
         successFullyCompletedSteps = successFullyCompletedSteps + "," + step2;
 
         // now retrieve and check the batch
-        final Batch batchAfterStep2 = batchRetriever.fetchBatch(batchName);
+        final org.jboss.as.test.integration.ejb.remote.client.api.tx.Batch batchAfterStep2 = batchRetriever.fetchBatch(batchName);
         Assert.assertNotNull("Batch after step2 was null", batchAfterStep2);
         Assert.assertEquals("Unexpected steps in batch, after step2", successFullyCompletedSteps, batchAfterStep2.getStepNames());
 
@@ -231,7 +242,7 @@ public class EJBClientXidTransactionTestCase {
         successFullyCompletedSteps = successFullyCompletedSteps + "," + step3;
 
         // now retrieve and check the batch
-        final Batch batchAfterStep3 = batchRetriever.fetchBatch(batchName);
+        final org.jboss.as.test.integration.ejb.remote.client.api.tx.Batch batchAfterStep3 = batchRetriever.fetchBatch(batchName);
         Assert.assertNotNull("Batch after step3 was null", batchAfterStep3);
         Assert.assertEquals("Unexpected steps in batch, after step3", successFullyCompletedSteps, batchAfterStep3.getStepNames());
 
@@ -252,9 +263,114 @@ public class EJBClientXidTransactionTestCase {
         }
 
         // now retrieve and check the batch
-        final Batch batchAfterSysException = batchRetriever.fetchBatch(batchName);
+        final org.jboss.as.test.integration.ejb.remote.client.api.tx.Batch batchAfterSysException = batchRetriever.fetchBatch(batchName);
         Assert.assertNotNull("Batch after system exception was null", batchAfterSysException);
         Assert.assertEquals("Unexpected steps in batch, after system exception", successFullyCompletedSteps, batchAfterSysException.getStepNames());
 
+    }
+
+    /**
+     * Tests that calls for a preexistent transaction are allowed and calls for a non-preexistent transaction are not allowed
+     * on server suspension.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testServerSuspension() throws Exception {
+        final StatelessEJBLocator<org.jboss.as.test.integration.ejb.remote.client.api.tx.CMTRemote> cmtRemoteBeanLocator = new StatelessEJBLocator<org.jboss.as.test.integration.ejb.remote.client.api.tx.CMTRemote>(
+                org.jboss.as.test.integration.ejb.remote.client.api.tx.CMTRemote.class, APP_NAME, MODULE_NAME, org.jboss.as.test.integration.ejb.remote.client.api.tx.CMTBean.class.getSimpleName(), "");
+        final org.jboss.as.test.integration.ejb.remote.client.api.tx.CMTRemote cmtRemoteBean = EJBClient.createProxy(cmtRemoteBeanLocator);
+
+        // start the transaction
+        txManager.begin();
+
+        try {
+            ModelNode op = new ModelNode();
+            op.get(ModelDescriptionConstants.OP).set("suspend");
+            managementClient.getControllerClient().execute(op);
+
+            // invoke the bean
+            cmtRemoteBean.mandatoryTxOp();
+            // end the tx
+            txManager.commit();
+        } catch (Exception e) {
+            txManager.rollback();
+            ModelNode op = new ModelNode();
+            op.get(ModelDescriptionConstants.OP).set("resume");
+            managementClient.getControllerClient().execute(op);
+            throw e;
+        }
+
+        try {
+            txManager.begin();
+            Assert.fail("Exception expected, server is shutdown");
+        } catch (Exception expected) {
+            // expected
+        }
+
+        ModelNode op = new ModelNode();
+        op.get(ModelDescriptionConstants.OP).set("resume");
+        managementClient.getControllerClient().execute(op);
+
+        // begin a transaction
+        txManager.begin();
+
+        final Transaction transaction;
+        try {
+            // can invoke bean
+            cmtRemoteBean.mandatoryTxOp();
+
+            // suspend server
+            op = new ModelNode();
+            op.get(ModelDescriptionConstants.OP).set("suspend");
+            managementClient.getControllerClient().execute(op);
+
+            // can continue invoking bean with current transaction
+            cmtRemoteBean.mandatoryTxOp();
+
+            // suspend current transaction and try to open a new one
+            transaction = txManager.suspend();
+        } catch (Exception e) {
+            txManager.rollback();
+            op = new ModelNode();
+            op.get(ModelDescriptionConstants.OP).set("resume");
+            managementClient.getControllerClient().execute(op);
+            throw e;
+        }
+
+        // cannot begin a new transaction
+        try {
+            txManager.begin();
+            Assert.fail("Exception expected, server is shutdown");
+        } catch (Exception expected) {
+            // expected
+        }
+
+        // resume and rollback current transaction
+        txManager.resume(transaction);
+        txManager.rollback();
+
+        // still cannot begin a new transaction
+        try {
+            txManager.begin();
+            Assert.fail("Exception expected, server is shutdown");
+        } catch (Exception expected) {
+            // expected
+        }
+
+        // resume server
+        op = new ModelNode();
+        op.get(ModelDescriptionConstants.OP).set("resume");
+        managementClient.getControllerClient().execute(op);
+
+        // begin a transaction, and make sure that the server now works normally
+        txManager.begin();
+        try {
+            // invoke the bean
+            cmtRemoteBean.mandatoryTxOp();
+        } finally {
+            // end the tx
+            txManager.commit();
+        }
     }
 }
