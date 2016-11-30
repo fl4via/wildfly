@@ -22,12 +22,14 @@
 
 package org.jboss.as.test.integration.ejb.remote.client.api.tx;
 
-import javax.transaction.UserTransaction;
-
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
+import org.jboss.arquillian.test.api.ArquillianResource;
+import org.jboss.as.arquillian.container.ManagementClient;
+import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.test.integration.ejb.remote.common.EJBManagementUtil;
+import org.jboss.dmr.ModelNode;
 import org.jboss.ejb.client.EJBClient;
 import org.jboss.ejb.client.EJBClientTransactionContext;
 import org.jboss.ejb.client.StatelessEJBLocator;
@@ -42,6 +44,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import javax.transaction.UserTransaction;
+
 /**
  * @author Jaikiran Pai
  */
@@ -55,6 +59,9 @@ public class EJBClientUserTransactionTestCase {
     private static final String MODULE_NAME = "ejb";
 
     private static String nodeName;
+
+    @ArquillianResource
+    private ManagementClient managementClient;
 
     /**
      * Creates an EJB deployment
@@ -264,6 +271,98 @@ public class EJBClientUserTransactionTestCase {
         final Batch batchAfterSysException = batchRetriever.fetchBatch(batchName);
         Assert.assertNotNull("Batch after system exception was null", batchAfterSysException);
         Assert.assertEquals("Unexpected steps in batch, after system exception", successFullyCompletedSteps, batchAfterSysException.getStepNames());
+    }
+
+    /**
+     * Tests that calls for a preexistent transaction are allowed and calls for a non-preexistent transaction are not allowed
+     * on server suspension.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testServerSuspension() throws Exception {
+        final StatelessEJBLocator<CMTRemote> cmtRemoteBeanLocator = new StatelessEJBLocator<CMTRemote>(CMTRemote.class, APP_NAME, MODULE_NAME, CMTBean.class.getSimpleName(), "");
+        final CMTRemote cmtRemoteBean = EJBClient.createProxy(cmtRemoteBeanLocator);
+
+        // begin the transaction
+        UserTransaction userTransaction = EJBClient.getUserTransaction(nodeName);
+        userTransaction.begin();
+        try {
+            ModelNode op = new ModelNode();
+            op.get(ModelDescriptionConstants.OP).set("suspend");
+            managementClient.getControllerClient().execute(op);
+
+            // invoke the bean
+            cmtRemoteBean.mandatoryTxOp();
+            // end the tx
+            userTransaction.commit();
+
+            try {
+                userTransaction.begin();
+                Assert.fail("Exception expected, server is shutdown");
+            } catch (Exception expected) {
+                // expected
+            }
+        } catch (Exception e) {
+            userTransaction.rollback();
+            throw e;
+        } finally {
+            // resume server
+            ModelNode op = new ModelNode();
+            op.get(ModelDescriptionConstants.OP).set("resume");
+            managementClient.getControllerClient().execute(op);
+
+        }
+
+        try {
+            // begin a transaction
+            userTransaction.begin();
+
+            // can invoke bean
+            cmtRemoteBean.mandatoryTxOp();
+
+            // suspend server
+            ModelNode op = new ModelNode();
+            op.get(ModelDescriptionConstants.OP).set("suspend");
+            managementClient.getControllerClient().execute(op);
+
+            // can continue invoking bean with current transaction
+            cmtRemoteBean.mandatoryTxOp();
+        } catch (Exception e) {
+            // resume server
+            ModelNode op = new ModelNode();
+            op.get(ModelDescriptionConstants.OP).set("resume");
+            managementClient.getControllerClient().execute(op);
+            throw e;
+        } finally {
+            // rollback current transaction
+            userTransaction.rollback();
+        }
+
+        // still cannot begin a new transaction
+        try {
+            userTransaction.begin();
+            Assert.fail("Exception expected, server is shutdown");
+        } catch (Exception expected) {
+            // expected
+        }
+
+        // resume server
+        ModelNode op = new ModelNode();
+        op.get(ModelDescriptionConstants.OP).set("resume");
+        managementClient.getControllerClient().execute(op);
+
+        try {
+            // begin a transaction, and make sure that the server now works normally
+            userTransaction.begin();
+            // invoke the bean
+            cmtRemoteBean.mandatoryTxOp();
+            // end the tx
+            userTransaction.commit();
+        } catch (Exception e) {
+            userTransaction.rollback();
+            throw e;
+        }
     }
 
 }
