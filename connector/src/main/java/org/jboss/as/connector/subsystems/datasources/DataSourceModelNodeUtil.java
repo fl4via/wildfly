@@ -22,6 +22,36 @@
 
 package org.jboss.as.connector.subsystems.datasources;
 
+import org.jboss.as.connector.util.ModelNodeUtil;
+import org.jboss.as.controller.OperationContext;
+import org.jboss.as.controller.OperationFailedException;
+import org.jboss.dmr.ModelNode;
+import org.jboss.jca.common.api.metadata.Defaults;
+import org.jboss.jca.common.api.metadata.common.Capacity;
+import org.jboss.jca.common.api.metadata.common.Credential;
+import org.jboss.jca.common.api.metadata.common.Extension;
+import org.jboss.jca.common.api.metadata.common.FlushStrategy;
+import org.jboss.jca.common.api.metadata.common.Recovery;
+import org.jboss.jca.common.api.metadata.ds.DsPool;
+import org.jboss.jca.common.api.metadata.ds.DsSecurity;
+import org.jboss.jca.common.api.metadata.ds.DsXaPool;
+import org.jboss.jca.common.api.metadata.ds.Statement;
+import org.jboss.jca.common.api.metadata.ds.TimeOut;
+import org.jboss.jca.common.api.metadata.ds.TransactionIsolation;
+import org.jboss.jca.common.api.metadata.ds.Validation;
+import org.jboss.jca.common.api.validator.ValidateException;
+import org.jboss.jca.common.metadata.common.CredentialImpl;
+import org.jboss.jca.common.metadata.ds.DsPoolImpl;
+import org.jboss.jca.common.metadata.ds.DsSecurityImpl;
+import org.jboss.jca.common.metadata.ds.DsXaPoolImpl;
+import org.jboss.jca.common.metadata.ds.StatementImpl;
+import org.jboss.jca.common.metadata.ds.TimeOutImpl;
+import org.jboss.jca.common.metadata.ds.ValidationImpl;
+
+import java.util.Collections;
+import java.util.Locale;
+import java.util.Map;
+
 import static org.jboss.as.connector.subsystems.common.pool.Constants.BACKGROUNDVALIDATION;
 import static org.jboss.as.connector.subsystems.common.pool.Constants.BACKGROUNDVALIDATIONMILLIS;
 import static org.jboss.as.connector.subsystems.common.pool.Constants.BLOCKING_TIMEOUT_WAIT_MILLIS;
@@ -49,6 +79,7 @@ import static org.jboss.as.connector.subsystems.datasources.Constants.CONNECTION
 import static org.jboss.as.connector.subsystems.datasources.Constants.DATASOURCE_CLASS;
 import static org.jboss.as.connector.subsystems.datasources.Constants.DATASOURCE_DRIVER;
 import static org.jboss.as.connector.subsystems.datasources.Constants.DRIVER_CLASS;
+import static org.jboss.as.connector.subsystems.datasources.Constants.ELYTRON_SECURITY_DOMAIN;
 import static org.jboss.as.connector.subsystems.datasources.Constants.ENABLED;
 import static org.jboss.as.connector.subsystems.datasources.Constants.ENLISTMENT_TRACE;
 import static org.jboss.as.connector.subsystems.datasources.Constants.EXCEPTION_SORTER_CLASSNAME;
@@ -66,6 +97,7 @@ import static org.jboss.as.connector.subsystems.datasources.Constants.PREPARED_S
 import static org.jboss.as.connector.subsystems.datasources.Constants.QUERY_TIMEOUT;
 import static org.jboss.as.connector.subsystems.datasources.Constants.REAUTHPLUGIN_PROPERTIES;
 import static org.jboss.as.connector.subsystems.datasources.Constants.REAUTH_PLUGIN_CLASSNAME;
+import static org.jboss.as.connector.subsystems.datasources.Constants.RECOVERY_ELYTRON_SECURITY_DOMAIN;
 import static org.jboss.as.connector.subsystems.datasources.Constants.RECOVERY_PASSWORD;
 import static org.jboss.as.connector.subsystems.datasources.Constants.RECOVERY_SECURITY_DOMAIN;
 import static org.jboss.as.connector.subsystems.datasources.Constants.RECOVERY_USERNAME;
@@ -94,36 +126,6 @@ import static org.jboss.as.connector.subsystems.datasources.Constants.VALID_CONN
 import static org.jboss.as.connector.subsystems.datasources.Constants.WRAP_XA_RESOURCE;
 import static org.jboss.as.connector.subsystems.datasources.Constants.XA_DATASOURCE_CLASS;
 import static org.jboss.as.connector.subsystems.datasources.Constants.XA_RESOURCE_TIMEOUT;
-
-import java.util.Collections;
-import java.util.Locale;
-import java.util.Map;
-
-import org.jboss.as.connector.util.ModelNodeUtil;
-import org.jboss.as.controller.OperationContext;
-import org.jboss.as.controller.OperationFailedException;
-import org.jboss.dmr.ModelNode;
-import org.jboss.jca.common.api.metadata.Defaults;
-import org.jboss.jca.common.api.metadata.common.Capacity;
-import org.jboss.jca.common.api.metadata.common.Credential;
-import org.jboss.jca.common.api.metadata.common.Extension;
-import org.jboss.jca.common.api.metadata.common.FlushStrategy;
-import org.jboss.jca.common.api.metadata.common.Recovery;
-import org.jboss.jca.common.api.metadata.ds.DsPool;
-import org.jboss.jca.common.api.metadata.ds.DsSecurity;
-import org.jboss.jca.common.api.metadata.ds.DsXaPool;
-import org.jboss.jca.common.api.metadata.ds.Statement;
-import org.jboss.jca.common.api.metadata.ds.TimeOut;
-import org.jboss.jca.common.api.metadata.ds.TransactionIsolation;
-import org.jboss.jca.common.api.metadata.ds.Validation;
-import org.jboss.jca.common.api.validator.ValidateException;
-import org.jboss.jca.common.metadata.common.CredentialImpl;
-import org.jboss.jca.common.metadata.ds.DsPoolImpl;
-import org.jboss.jca.common.metadata.ds.DsSecurityImpl;
-import org.jboss.jca.common.metadata.ds.DsXaPoolImpl;
-import org.jboss.jca.common.metadata.ds.StatementImpl;
-import org.jboss.jca.common.metadata.ds.TimeOutImpl;
-import org.jboss.jca.common.metadata.ds.ValidationImpl;
 
 /**
  * Utility used to help convert between JCA spi data-source instances and model
@@ -172,10 +174,13 @@ class DataSourceModelNodeUtil {
 
         final String password = ModelNodeUtil.getResolvedStringIfSetOrGetDefault(operationContext, dataSourceNode, PASSWORD);
         final String securityDomain = ModelNodeUtil.getResolvedStringIfSetOrGetDefault(operationContext, dataSourceNode, SECURITY_DOMAIN);
+        final String elytronSecurityDomain = ModelNodeUtil.getResolvedStringIfSetOrGetDefault(operationContext, dataSourceNode, ELYTRON_SECURITY_DOMAIN);
 
         final Extension reauthPlugin = ModelNodeUtil.extractExtension(operationContext, dataSourceNode, REAUTH_PLUGIN_CLASSNAME, REAUTHPLUGIN_PROPERTIES);
 
-        final DsSecurity security = new DsSecurityImpl(username, password, securityDomain, reauthPlugin);
+        final DsSecurity security = new DsSecurityImpl(username, password,
+                elytronSecurityDomain == null? elytronSecurityDomain: securityDomain, elytronSecurityDomain != null,
+                reauthPlugin); // TODO validate
 
         final boolean sharePreparedStatements = ModelNodeUtil.getBooleanIfSetOrGetDefault(operationContext, dataSourceNode, SHARE_PREPARED_STATEMENTS);
         final Long preparedStatementsCacheSize = ModelNodeUtil.getLongIfSetOrGetDefault(operationContext, dataSourceNode, PREPARED_STATEMENTS_CACHE_SIZE);
@@ -269,10 +274,13 @@ class DataSourceModelNodeUtil {
         final String username = ModelNodeUtil.getResolvedStringIfSetOrGetDefault(operationContext, dataSourceNode, USERNAME);
         final String password = ModelNodeUtil.getResolvedStringIfSetOrGetDefault(operationContext, dataSourceNode, PASSWORD);
         final String securityDomain = ModelNodeUtil.getResolvedStringIfSetOrGetDefault(operationContext, dataSourceNode, SECURITY_DOMAIN);
+        final String elytronSecurityDomain = ModelNodeUtil.getResolvedStringIfSetOrGetDefault(operationContext, dataSourceNode, ELYTRON_SECURITY_DOMAIN);
 
         final Extension reauthPlugin = ModelNodeUtil.extractExtension(operationContext, dataSourceNode, REAUTH_PLUGIN_CLASSNAME, REAUTHPLUGIN_PROPERTIES);
 
-        final DsSecurity security = new DsSecurityImpl(username, password, securityDomain, reauthPlugin);
+        final DsSecurity security = new DsSecurityImpl(username, password,
+                elytronSecurityDomain == null? securityDomain: elytronSecurityDomain, elytronSecurityDomain != null,
+                reauthPlugin);
 
         final Boolean sharePreparedStatements = dataSourceNode.hasDefined(SHARE_PREPARED_STATEMENTS.getName()) ? dataSourceNode.get(
                 SHARE_PREPARED_STATEMENTS.getName()).asBoolean() : Defaults.SHARE_PREPARED_STATEMENTS;
@@ -319,6 +327,7 @@ class DataSourceModelNodeUtil {
         final String recoveryUsername = ModelNodeUtil.getResolvedStringIfSetOrGetDefault(operationContext, dataSourceNode, RECOVERY_USERNAME);
         final String recoveryPassword = ModelNodeUtil.getResolvedStringIfSetOrGetDefault(operationContext, dataSourceNode, RECOVERY_PASSWORD);
         final String recoverySecurityDomain = ModelNodeUtil.getResolvedStringIfSetOrGetDefault(operationContext, dataSourceNode, RECOVERY_SECURITY_DOMAIN);
+        final String recoveryElytronSecurityDomain = ModelNodeUtil.getResolvedStringIfSetOrGetDefault(operationContext, dataSourceNode, RECOVERY_ELYTRON_SECURITY_DOMAIN);
         Boolean noRecovery = ModelNodeUtil.getBooleanIfSetOrGetDefault(operationContext, dataSourceNode, NO_RECOVERY);
         final String urlProperty =   ModelNodeUtil.getResolvedStringIfSetOrGetDefault(operationContext, dataSourceNode, URL_PROPERTY);
         Recovery recovery = null;
@@ -326,7 +335,9 @@ class DataSourceModelNodeUtil {
             Credential credential = null;
 
             if ((recoveryUsername != null && recoveryPassword != null) || recoverySecurityDomain != null)
-               credential = new CredentialImpl(recoveryUsername, recoveryPassword, recoverySecurityDomain);
+               credential = new CredentialImpl(recoveryUsername, recoveryPassword,
+                       recoveryElytronSecurityDomain == null? recoverySecurityDomain: recoverySecurityDomain,
+                       recoveryElytronSecurityDomain != null);
 
             Extension recoverPlugin = ModelNodeUtil.extractExtension(operationContext, dataSourceNode, RECOVER_PLUGIN_CLASSNAME, RECOVER_PLUGIN_PROPERTIES);
 

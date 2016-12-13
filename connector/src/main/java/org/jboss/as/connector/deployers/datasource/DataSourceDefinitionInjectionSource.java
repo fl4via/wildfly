@@ -145,7 +145,7 @@ public class DataSourceDefinitionInjectionSource extends ResourceDefinitionInjec
 
             clearUnknownProperties(reflectionIndex, clazz, properties);
             populateProperties(reflectionIndex, clazz, properties);
-            DsSecurityImpl dsSecurity = new DsSecurityImpl(user, password, null, null);
+            DsSecurityImpl dsSecurity = new DsSecurityImpl(user, password, null, false, null);
 
             if (XADataSource.class.isAssignableFrom(clazz) && transactional) {
                 final DsXaPoolImpl xaPool = new DsXaPoolImpl(minPoolSize < 0 ? Defaults.MIN_POOL_SIZE : Integer.valueOf(minPoolSize),

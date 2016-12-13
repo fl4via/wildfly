@@ -22,12 +22,6 @@
 
 package org.jboss.as.connector.deployers.ds;
 
-import static javax.xml.stream.XMLStreamConstants.END_ELEMENT;
-import static javax.xml.stream.XMLStreamConstants.START_ELEMENT;
-
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
-
 import org.jboss.jca.common.api.metadata.common.Credential;
 import org.jboss.jca.common.api.metadata.common.Extension;
 import org.jboss.jca.common.api.metadata.common.Recovery;
@@ -40,6 +34,12 @@ import org.jboss.jca.common.metadata.ds.DsParser;
 import org.jboss.jca.common.metadata.ds.DsSecurityImpl;
 import org.jboss.metadata.property.PropertyReplacer;
 import org.jboss.metadata.property.PropertyResolver;
+
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
+
+import static javax.xml.stream.XMLStreamConstants.END_ELEMENT;
+import static javax.xml.stream.XMLStreamConstants.START_ELEMENT;
 
 /**
  * TODO class javadoc.
@@ -76,6 +76,7 @@ public class DsXmlParser extends DsParser {
         String userName = null;
         String password = null;
         String securityDomain = null;
+        String elytronSecurityDomain = null;
         Extension reauthPlugin = null;
 
         while (reader.hasNext()) {
@@ -84,7 +85,9 @@ public class DsXmlParser extends DsParser {
                     if (DataSource.Tag.forName(reader.getLocalName()) ==
                             DataSource.Tag.SECURITY) {
 
-                        return new DsSecurityImpl(userName, password, securityDomain, reauthPlugin);
+                        return new DsSecurityImpl(userName, password,
+                                elytronSecurityDomain == null? securityDomain: elytronSecurityDomain,
+                                elytronSecurityDomain != null, reauthPlugin);
                     } else {
                         if (DsSecurity.Tag.forName(reader.getLocalName()) == DsSecurity.Tag.UNKNOWN) {
                             throw new ParserException(bundle.unexpectedEndTag(reader.getLocalName()));
@@ -125,6 +128,10 @@ public class DsXmlParser extends DsParser {
                             securityDomain = elementAsString(reader);
                             break;
                         }
+                        case ELYTRON_SECURITY_DOMAIN: {
+                            elytronSecurityDomain = elementAsString(reader); // TODO validate
+                            break;
+                        }
                         case REAUTH_PLUGIN: {
                             reauthPlugin = parseExtension(reader, tag.getLocalName());
                             break;
@@ -155,6 +162,7 @@ public class DsXmlParser extends DsParser {
         String userName = null;
         String password = null;
         String securityDomain = null;
+        String elytronSecurityDomain = null;
 
         while (reader.hasNext()) {
             switch (reader.nextTag()) {
@@ -162,7 +170,8 @@ public class DsXmlParser extends DsParser {
                     if (DataSource.Tag.forName(reader.getLocalName()) == DataSource.Tag.SECURITY ||
                             Recovery.Tag.forName(reader.getLocalName()) == Recovery.Tag.RECOVER_CREDENTIAL) {
 
-                        return new CredentialImpl(userName, password, securityDomain);
+                        return new CredentialImpl(userName, password,
+                                elytronSecurityDomain == null? securityDomain: elytronSecurityDomain, elytronSecurityDomain != null);
                     } else {
                         if (Credential.Tag.forName(reader.getLocalName()) == Credential.Tag.UNKNOWN) {
                             throw new ParserException(bundle.unexpectedEndTag(reader.getLocalName()));
@@ -187,6 +196,10 @@ public class DsXmlParser extends DsParser {
                         }
                         case SECURITY_DOMAIN: {
                             securityDomain = elementAsString(reader);
+                            break;
+                        }
+                        case ELYTRON_SECURITY_DOMAIN: {
+                            elytronSecurityDomain = elementAsString(reader); // TODO validate
                             break;
                         }
                         default:

@@ -22,20 +22,6 @@
 
 package org.wildfly.extension.messaging.activemq.jms;
 
-import static java.util.Collections.EMPTY_LIST;
-import static org.jboss.as.naming.deployment.ContextNames.BindInfo;
-import static org.wildfly.extension.messaging.activemq.BinderServiceUtil.installAliasBinderService;
-import static org.wildfly.extension.messaging.activemq.MessagingServices.getActiveMQServiceName;
-import static org.wildfly.extension.messaging.activemq.jms.ConnectionFactoryAttributes.Pooled.REBALANCE_CONNECTIONS_PROP_NAME;
-
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.activemq.artemis.api.core.BroadcastEndpointFactory;
 import org.apache.activemq.artemis.api.core.ChannelBroadcastEndpointFactory;
 import org.apache.activemq.artemis.api.core.DiscoveryGroupConfiguration;
@@ -121,6 +107,20 @@ import org.wildfly.extension.messaging.activemq.ActiveMQActivationService;
 import org.wildfly.extension.messaging.activemq.JGroupsChannelLocator;
 import org.wildfly.extension.messaging.activemq.MessagingServices;
 import org.wildfly.extension.messaging.activemq.logging.MessagingLogger;
+
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static java.util.Collections.EMPTY_LIST;
+import static org.jboss.as.naming.deployment.ContextNames.BindInfo;
+import static org.wildfly.extension.messaging.activemq.BinderServiceUtil.installAliasBinderService;
+import static org.wildfly.extension.messaging.activemq.MessagingServices.getActiveMQServiceName;
+import static org.wildfly.extension.messaging.activemq.jms.ConnectionFactoryAttributes.Pooled.REBALANCE_CONNECTIONS_PROP_NAME;
 
 /**
  * A service which translates a pooled connection factory into a resource adapter driven connection pool
@@ -496,10 +496,10 @@ public class PooledConnectionFactoryService implements Service<Void> {
         //   <application />
         // </security>
         // => PoolStrategy.POOL_BY_CRI
-        Security security = new SecurityImpl(null, null, true);
+        Security security = new SecurityImpl(null, null, true, false);
         // register the XA Connection *without* recovery. ActiveMQ already takes care of the registration with the correct credentials
         // when its ResourceAdapter is started
-        Recovery recovery = new Recovery(new CredentialImpl(null, null, null), null, Boolean.TRUE);
+        Recovery recovery = new Recovery(new CredentialImpl(null, null, null, false), null, Boolean.TRUE);
         Validation validation = new ValidationImpl(Defaults.VALIDATE_ON_MATCH, null, null, false);
         // do no track
         return new ConnectionDefinitionImpl(Collections.<String, String>emptyMap(), RAMANAGED_CONN_FACTORY, jndiName, ACTIVEMQ_CONN_DEF, true, true, true, Defaults.SHARABLE, Defaults.ENLISTMENT, Defaults.CONNECTABLE, false, managedConnectionPoolClassName, enlistmentTrace, pool, timeOut, validation, security, recovery, isXA);
