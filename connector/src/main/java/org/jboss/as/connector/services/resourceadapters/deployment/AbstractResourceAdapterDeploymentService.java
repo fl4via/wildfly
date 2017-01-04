@@ -22,9 +22,26 @@
 
 package org.jboss.as.connector.services.resourceadapters.deployment;
 
-import static java.lang.Thread.currentThread;
-import static java.security.AccessController.doPrivileged;
-import static org.jboss.as.connector.logging.ConnectorLogger.DEPLOYMENT_CONNECTOR_LOGGER;
+import org.jboss.as.connector.metadata.api.SecurityMetadata;
+import org.jboss.jca.common.api.metadata.resourceadapter.Activation;
+import org.jboss.jca.common.api.metadata.spec.ConfigProperty;
+import org.jboss.jca.common.api.metadata.spec.Connector;
+import org.jboss.jca.common.api.metadata.spec.XsdString;
+import org.jboss.jca.core.api.connectionmanager.ccm.CachedConnectionManager;
+import org.jboss.jca.core.api.management.ManagementRepository;
+import org.jboss.jca.core.bootstrapcontext.BootstrapContextCoordinator;
+import org.jboss.jca.core.connectionmanager.ConnectionManager;
+import org.jboss.jca.core.security.elytron.ElytronSubjectFactory;
+import org.jboss.jca.core.security.picketbox.PicketBoxSubjectFactory;
+import org.jboss.jca.core.spi.mdr.AlreadyExistsException;
+import org.jboss.jca.core.spi.rar.ResourceAdapterRepository;
+import org.jboss.jca.core.spi.transaction.TransactionIntegration;
+import org.jboss.jca.core.spi.transaction.recovery.XAResourceRecovery;
+import org.jboss.jca.core.spi.transaction.recovery.XAResourceRecoveryRegistry;
+import org.jboss.jca.deployers.common.AbstractResourceAdapterDeployer;
+import org.jboss.jca.deployers.common.BeanValidation;
+import org.jboss.jca.deployers.common.CommonDeployment;
+import org.jboss.jca.deployers.common.DeployException;
 
 import java.io.File;
 import java.io.PrintWriter;
@@ -59,24 +76,6 @@ import org.jboss.as.naming.ServiceBasedNamingStore;
 import org.jboss.as.naming.WritableServiceBasedNamingStore;
 import org.jboss.as.naming.deployment.ContextNames;
 import org.jboss.as.naming.service.BinderService;
-import org.jboss.jca.common.api.metadata.resourceadapter.Activation;
-import org.jboss.jca.common.api.metadata.spec.ConfigProperty;
-import org.jboss.jca.common.api.metadata.spec.Connector;
-import org.jboss.jca.common.api.metadata.spec.XsdString;
-import org.jboss.jca.core.api.connectionmanager.ccm.CachedConnectionManager;
-import org.jboss.jca.core.api.management.ManagementRepository;
-import org.jboss.jca.core.bootstrapcontext.BootstrapContextCoordinator;
-import org.jboss.jca.core.connectionmanager.ConnectionManager;
-import org.jboss.jca.core.security.picketbox.PicketBoxSubjectFactory;
-import org.jboss.jca.core.spi.mdr.AlreadyExistsException;
-import org.jboss.jca.core.spi.rar.ResourceAdapterRepository;
-import org.jboss.jca.core.spi.transaction.TransactionIntegration;
-import org.jboss.jca.core.spi.transaction.recovery.XAResourceRecovery;
-import org.jboss.jca.core.spi.transaction.recovery.XAResourceRecoveryRegistry;
-import org.jboss.jca.deployers.common.AbstractResourceAdapterDeployer;
-import org.jboss.jca.deployers.common.BeanValidation;
-import org.jboss.jca.deployers.common.CommonDeployment;
-import org.jboss.jca.deployers.common.DeployException;
 import org.jboss.logging.BasicLogger;
 import org.jboss.msc.inject.Injector;
 import org.jboss.msc.service.AbstractServiceListener;
@@ -89,9 +88,14 @@ import org.jboss.msc.service.StopContext;
 import org.jboss.msc.value.InjectedValue;
 import org.jboss.security.SubjectFactory;
 import org.jboss.threads.JBossThreadFactory;
+
 import org.wildfly.security.manager.WildFlySecurityManager;
 import org.wildfly.security.manager.action.ClearContextClassLoaderAction;
 import org.wildfly.security.manager.action.SetContextClassLoaderFromClassAction;
+
+import static java.lang.Thread.currentThread;
+import static java.security.AccessController.doPrivileged;
+import static org.jboss.as.connector.logging.ConnectorLogger.DEPLOYMENT_CONNECTOR_LOGGER;
 
 /**
  * A ResourceAdapterDeploymentService.
@@ -610,10 +614,20 @@ public abstract class AbstractResourceAdapterDeploymentService {
         }
 
         @Override
-        protected org.jboss.jca.core.spi.security.SubjectFactory getSubjectFactory(String securityDomain) throws DeployException {
+        protected org.jboss.jca.core.spi.security.SubjectFactory getSubjectFactory(
+                org.jboss.jca.common.api.metadata.common.SecurityMetadata securityMetadata) throws DeployException {
+            assert securityMetadata instanceof SecurityMetadata;
+            final String securityDomain = securityMetadata.getSecurityDomain();
             if (securityDomain == null || securityDomain.trim().equals("")) {
                 return null;
-            } else {
+            } else if (((SecurityMetadata)securityMetadata).isElytronEnabled()) {
+                return new ElytronSubjectFactory() {
+                    @Override
+                    public Subject createSubject(final String sd) {
+                        return null; // TODO
+                    }
+                };
+            } else  {
                 return new PicketBoxSubjectFactory(subjectFactory.getValue()){
 
                     @Override

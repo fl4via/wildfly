@@ -21,16 +21,9 @@
  */
 package org.jboss.as.connector.subsystems.datasources;
 
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.COMPOSITE;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.DISABLE;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ENABLE;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.NAME;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.STEPS;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.VALUE;
-
 import org.jboss.as.connector.logging.ConnectorLogger;
+import org.jboss.as.connector.metadata.api.Credential;
+import org.jboss.as.connector.metadata.api.Security;
 import org.jboss.as.controller.ModelVersion;
 import org.jboss.as.controller.ObjectListAttributeDefinition;
 import org.jboss.as.controller.ObjectTypeAttributeDefinition;
@@ -54,9 +47,7 @@ import org.jboss.as.controller.transform.TransformationContext;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 import org.jboss.jca.common.api.metadata.Defaults;
-import org.jboss.jca.common.api.metadata.common.Credential;
 import org.jboss.jca.common.api.metadata.common.Recovery;
-import org.jboss.jca.common.api.metadata.common.Security;
 import org.jboss.jca.common.api.metadata.common.XaPool;
 import org.jboss.jca.common.api.metadata.ds.DataSource;
 import org.jboss.jca.common.api.metadata.ds.Driver;
@@ -65,6 +56,8 @@ import org.jboss.jca.common.api.metadata.ds.Statement;
 import org.jboss.jca.common.api.metadata.ds.TimeOut;
 import org.jboss.jca.common.api.metadata.ds.Validation;
 import org.jboss.jca.common.api.metadata.ds.XaDataSource;
+
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.*;
 
 /**
  * @author @author <a href="mailto:stefano.maestri@redhat.com">Stefano
@@ -158,6 +151,8 @@ public class Constants {
 
     private static final String SECURITY_DOMAIN_NAME = "security-domain";
 
+    private static final String ELYTRON_SECURITY_DOMAIN_NAME = "elytron-security-domain";
+
     private static final String SHAREPREPAREDSTATEMENTS_NAME = "share-prepared-statements";
 
     private static final String PREPAREDSTATEMENTSCACHESIZE_NAME = "prepared-statements-cache-size";
@@ -209,6 +204,8 @@ public class Constants {
     private static final String RECOVERY_PASSWORD_NAME = "recovery-password";
 
     private static final String RECOVERY_SECURITY_DOMAIN_NAME = "recovery-security-domain";
+
+    private static final String RECOVERY_ELYTRON_SECURITY_DOMAIN_NAME = "recovery-elytron-security-domain";
 
     private static final String RECOVER_PLUGIN_CLASSNAME_NAME = "recovery-plugin-class-name";
 
@@ -403,6 +400,15 @@ public class Constants {
             .addAlternatives(USERNAME_NAME)
             .addAccessConstraint(SensitiveTargetAccessConstraintDefinition.SECURITY_DOMAIN_REF)
             .addAccessConstraint(DS_SECURITY_DEF)
+            .build();
+
+    public static SimpleAttributeDefinition ELYTRON_SECURITY_DOMAIN = new SimpleAttributeDefinitionBuilder(ELYTRON_SECURITY_DOMAIN_NAME, ModelType.STRING)
+            .setXmlName(Security.Tag.ELYTRON_SECURITY_DOMAIN.getLocalName())
+            .setAllowExpression(true)
+            .setAllowNull(true)
+            .addAlternatives(USERNAME_NAME)
+            .addAccessConstraint(SensitiveTargetAccessConstraintDefinition.SECURITY_DOMAIN_REF) // FIXME
+            .addAccessConstraint(DS_SECURITY_DEF) // FIXME
             .build();
 
     static SimpleAttributeDefinition PREPARED_STATEMENTS_CACHE_SIZE = new SimpleAttributeDefinitionBuilder(PREPAREDSTATEMENTSCACHESIZE_NAME, ModelType.LONG, true)
@@ -652,6 +658,13 @@ public class Constants {
 
     static SimpleAttributeDefinition RECOVERY_SECURITY_DOMAIN = new SimpleAttributeDefinitionBuilder(RECOVERY_SECURITY_DOMAIN_NAME, ModelType.STRING)
             .setXmlName(Security.Tag.SECURITY_DOMAIN.getLocalName())
+            .setAllowExpression(true)
+            .setAllowNull(true)
+            .addAlternatives(RECOVERY_USERNAME_NAME)
+            .build();
+
+    static SimpleAttributeDefinition RECOVERY_ELYTRON_SECURITY_DOMAIN = new SimpleAttributeDefinitionBuilder(RECOVERY_ELYTRON_SECURITY_DOMAIN_NAME, ModelType.STRING)
+            .setXmlName(Security.Tag.ELYTRON_SECURITY_DOMAIN.getLocalName())
             .setAllowExpression(true)
             .setAllowNull(true)
             .addAlternatives(RECOVERY_USERNAME_NAME)

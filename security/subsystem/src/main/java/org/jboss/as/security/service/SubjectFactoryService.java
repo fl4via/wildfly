@@ -40,6 +40,8 @@ import org.jboss.security.plugins.JBossSecuritySubjectFactory;
  *
  * @author <a href="mailto:mmoyses@redhat.com">Marcus Moyses</a>
  */
+
+// TODO this is the subject factory that need to be provided ot JCA in an Elytron version
 public class SubjectFactoryService implements Service<SubjectFactory> {
 
     public static final ServiceName SERVICE_NAME = SecurityExtension.JBOSS_SECURITY.append("subject-factory");

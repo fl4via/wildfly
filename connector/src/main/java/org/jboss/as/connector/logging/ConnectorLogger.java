@@ -859,4 +859,34 @@ public interface ConnectorLogger extends BasicLogger {
 
     @Message(id = 101, value = "Thread pool: %s(type: %s) can not be added for workmanager: %s, only one thread pool is allowed for each type.")
     OperationFailedException oneThreadPoolWorkManager(String threadPoolName, String threadPoolType, String workManagerName);
+
+    /**
+     * Invalid security configuration
+     * @return The value
+     */
+    @Message(id = 102, value = "Invalid <security> configuration")
+    String invalidSecurityConfiguration();
+
+
+    /**
+     * Unexpected duplicate security domain element
+     * @param elytronSecurityDomain the value configured as elytron-security-domain
+     * @param securityDomain the value configured as security-domain
+     * @return The value
+     */
+    @Message(id = 103, value = "Duplicate security domain is not allowed, configure one of elytron-security-domain("
+            + "%s) or security-domain(%s)")
+    String duplicateSecurityDomain(String elytronSecurityDomain, String securityDomain);
+
+    /**
+     * Unexpected duplicate security domain and application element
+     * @param elytronSecurityDomainAndApplication the value configured as elytron-security-domain-and-application
+     * @param securityDomainAndApplication the value configured as security-domain-and-application
+     * @return The value
+     */
+    @Message(id = 104, value = "Duplicate security domain and application is not allowed, configure one of "
+            + "elytron-security-domain-and-application(%s) or security-domain-and-application(%s)")
+    String duplicateSecurityDomainAndApplication(String elytronSecurityDomainAndApplication,
+            String securityDomainAndApplication);
+
 }

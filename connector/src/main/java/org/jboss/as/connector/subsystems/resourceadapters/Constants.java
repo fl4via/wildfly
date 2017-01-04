@@ -21,9 +21,8 @@
  */
 package org.jboss.as.connector.subsystems.resourceadapters;
 
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamWriter;
-
+import org.jboss.as.connector.metadata.api.Credential;
+import org.jboss.as.connector.metadata.api.Security;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.AttributeMarshaller;
 import org.jboss.as.controller.ModelVersion;
@@ -41,9 +40,7 @@ import org.jboss.as.controller.operations.validation.StringLengthValidator;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 import org.jboss.jca.common.api.metadata.Defaults;
-import org.jboss.jca.common.api.metadata.common.Credential;
 import org.jboss.jca.common.api.metadata.common.Recovery;
-import org.jboss.jca.common.api.metadata.common.Security;
 import org.jboss.jca.common.api.metadata.common.TransactionSupportEnum;
 import org.jboss.jca.common.api.metadata.common.XaPool;
 import org.jboss.jca.common.api.metadata.ds.DataSource;
@@ -51,6 +48,9 @@ import org.jboss.jca.common.api.metadata.ds.TimeOut;
 import org.jboss.jca.common.api.metadata.resourceadapter.Activation;
 import org.jboss.jca.common.api.metadata.resourceadapter.ConnectionDefinition;
 import org.jboss.jca.common.api.metadata.resourceadapter.WorkManagerSecurity;
+
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamWriter;
 
 
 /**
@@ -97,7 +97,11 @@ public class Constants {
 
     private static final String SECURITY_DOMAIN_AND_APPLICATION_NAME = "security-domain-and-application";
 
+    private static final String ELYTRON_SECURITY_DOMAIN_AND_APPLICATION_NAME = "elytron-security-domain-and-application";
+
     private static final String SECURITY_DOMAIN_NAME = "security-domain";
+
+    private static final String ELYTRON_SECURITY_DOMAIN_NAME = "elytron-security-domain";
 
     private static final String APPLICATION_NAME = "security-application";
 
@@ -167,6 +171,8 @@ public class Constants {
     private static final String RECOVERY_PASSWORD_NAME = "recovery-password";
 
     private static final String RECOVERY_SECURITY_DOMAIN_NAME = "recovery-security-domain";
+
+    private static final String RECOVERY_ELYTRON_SECURITY_DOMAIN_NAME = "recovery-elytron-security-domain";
 
     private static final String RECOVERLUGIN_CLASSNAME_NAME = "recovery-plugin-class-name";
 
@@ -376,6 +382,14 @@ public class Constants {
             .addAccessConstraint(SensitiveTargetAccessConstraintDefinition.SECURITY_DOMAIN_REF)
             .addAccessConstraint(ResourceAdaptersExtension.RA_SECURITY_DEF)
             .build();
+    static SimpleAttributeDefinition ELYTRON_SECURITY_DOMAIN = new SimpleAttributeDefinitionBuilder(ELYTRON_SECURITY_DOMAIN_NAME, ModelType.STRING)
+            .setXmlName(Security.Tag.ELYTRON_SECURITY_DOMAIN.getLocalName())
+            .setAllowExpression(true)
+            .setAllowNull(true)
+            .setAlternatives(ELYTRON_SECURITY_DOMAIN_AND_APPLICATION_NAME, APPLICATION_NAME)
+            .addAccessConstraint(SensitiveTargetAccessConstraintDefinition.SECURITY_DOMAIN_REF) // FIXME
+            .addAccessConstraint(ResourceAdaptersExtension.RA_SECURITY_DEF) // FIXME
+            .build();
 
 
     static final SimpleAttributeDefinition SECURITY_DOMAIN_AND_APPLICATION = new SimpleAttributeDefinitionBuilder(SECURITY_DOMAIN_AND_APPLICATION_NAME, ModelType.STRING)
@@ -384,6 +398,14 @@ public class Constants {
             .setAllowNull(true)
             .setAlternatives(SECURITY_DOMAIN_NAME, APPLICATION_NAME)
             .addAccessConstraint(SensitiveTargetAccessConstraintDefinition.SECURITY_DOMAIN_REF)
+            .addAccessConstraint(ResourceAdaptersExtension.RA_SECURITY_DEF)
+            .build();
+    static final SimpleAttributeDefinition ELYTRON_SECURITY_DOMAIN_AND_APPLICATION = new SimpleAttributeDefinitionBuilder(ELYTRON_SECURITY_DOMAIN_AND_APPLICATION_NAME, ModelType.STRING)
+            .setXmlName(Security.Tag.ELYTRON_SECURITY_DOMAIN_AND_APPLICATION.getLocalName())
+            .setAllowExpression(true)
+            .setAllowNull(true)
+            .setAlternatives(ELYTRON_SECURITY_DOMAIN_NAME, APPLICATION_NAME)
+            .addAccessConstraint(SensitiveTargetAccessConstraintDefinition.SECURITY_DOMAIN_REF) // FIXME
             .addAccessConstraint(ResourceAdaptersExtension.RA_SECURITY_DEF)
             .build();
 
@@ -509,6 +531,15 @@ public class Constants {
             .setMeasurementUnit(MeasurementUnit.NONE)
             .setDefaultValue(new ModelNode())
             .addAccessConstraint(SensitiveTargetAccessConstraintDefinition.SECURITY_DOMAIN_REF)
+            .addAccessConstraint(ResourceAdaptersExtension.RA_SECURITY_DEF)
+            .build();
+
+    static SimpleAttributeDefinition RECOVERY_ELYTRON_SECURITY_DOMAIN = new SimpleAttributeDefinitionBuilder(RECOVERY_ELYTRON_SECURITY_DOMAIN_NAME, ModelType.STRING, true)
+            .setXmlName(Credential.Tag.ELYTRON_SECURITY_DOMAIN.getLocalName())
+            .setAllowExpression(true)
+            .setMeasurementUnit(MeasurementUnit.NONE)
+            .setDefaultValue(new ModelNode())
+            .addAccessConstraint(SensitiveTargetAccessConstraintDefinition.SECURITY_DOMAIN_REF) // FIXME
             .addAccessConstraint(ResourceAdaptersExtension.RA_SECURITY_DEF)
             .build();
 
