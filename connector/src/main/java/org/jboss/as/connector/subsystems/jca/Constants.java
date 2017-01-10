@@ -47,6 +47,10 @@ public class Constants {
 
     static final String BOOTSTRAP_CONTEXT = "bootstrap-context";
 
+    static final String JCA_SECURITY_DOMAIN = "jca-security-domain"; // TODO call it jca security domain?
+    static final String SECURITY_DOMAIN = "security-domain"; // TODO call it resource security domain?
+    static final String REFERENCING_DEPLOYMENTS = "referencing-deployments";
+
     static final String TX = "TX";
     static final String NON_TX = "NonTX";
 }
