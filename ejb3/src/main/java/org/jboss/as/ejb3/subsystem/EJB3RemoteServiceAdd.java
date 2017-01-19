@@ -140,7 +140,7 @@ public class EJB3RemoteServiceAdd extends AbstractAddStepHandler {
         final OptionMap channelCreationOptions = this.getChannelCreationOptions(context);
         // Install the EJB remoting connector service which will listen for client connections on the remoting channel
         // TODO: Externalize (expose via management API if needed) the version and the marshalling strategy
-        final EJBRemoteConnectorService ejbRemoteConnectorService = new EJBRemoteConnectorService((byte) 0x02, new String[]{"river"}, channelCreationOptions);
+        final EJBRemoteConnectorService ejbRemoteConnectorService = new EJBRemoteConnectorService((byte) 0x02, new String[]{"river"}, isGracefulTxnShutdown(context), channelCreationOptions);
         ServiceBuilder<EJBRemoteConnectorService> builder = target.addService(EJBRemoteConnectorService.SERVICE_NAME, ejbRemoteConnectorService);
         builder
                 // add dependency on the Remoting subsystem endpoint
@@ -168,6 +168,13 @@ public class EJB3RemoteServiceAdd extends AbstractAddStepHandler {
         EJB3RemoteResourceDefinition.CONNECTOR_REF.validateAndSet(operation, model);
         EJB3RemoteResourceDefinition.THREAD_POOL_NAME.validateAndSet(operation, model);
         EJB3RemoteResourceDefinition.EXECUTE_IN_WORKER.validateAndSet(operation, model);
+    }
+
+    private boolean isGracefulTxnShutdown(final OperationContext context) throws OperationFailedException {
+        // read the full model of the current resource
+        final ModelNode fullModel = Resource.Tools.readModel(context.readResource(PathAddress.EMPTY_ADDRESS));
+        final ModelNode channelCreationOptions = fullModel.get(EJB3SubsystemModel.ENABLE_GRACEFUL_TXN_SHUTDOWN);
+        return channelCreationOptions.isDefined() && channelCreationOptions.asBoolean();
     }
 
     private OptionMap getChannelCreationOptions(final OperationContext context) throws OperationFailedException {

@@ -79,11 +79,13 @@ public class VersionOneProtocolChannelReceiver implements Channel.Receiver, Depl
     protected final Set<ClusterTopologyUpdateListener> clusterTopologyUpdateListeners = Collections.synchronizedSet(new HashSet<ClusterTopologyUpdateListener>());
     protected final RemoteAsyncInvocationCancelStatusService remoteAsyncInvocationCancelStatus;
     protected final SuspendController suspendController;
+    protected final boolean gracefulTxnShutdown;
 
     public VersionOneProtocolChannelReceiver(final ChannelAssociation channelAssociation, final DeploymentRepository deploymentRepository,
                                              final EJBRemoteTransactionsRepository transactionsRepository, final RegistryCollector<String, List<ClientMapping>> clientMappingRegistryCollector,
                                              final MarshallerFactory marshallerFactory, final ExecutorService executorService,
-                                             final RemoteAsyncInvocationCancelStatusService asyncInvocationCancelStatusService, final SuspendController suspendController) {
+                                             final RemoteAsyncInvocationCancelStatusService asyncInvocationCancelStatusService, final SuspendController suspendController,
+            final boolean gracefulTxnShutdown) {
         this.marshallerFactory = marshallerFactory;
         this.channelAssociation = channelAssociation;
         this.executorService = executorService;
@@ -92,6 +94,7 @@ public class VersionOneProtocolChannelReceiver implements Channel.Receiver, Depl
         this.clientMappingRegistryCollector = clientMappingRegistryCollector;
         this.remoteAsyncInvocationCancelStatus = asyncInvocationCancelStatusService;
         this.suspendController = suspendController;
+        this.gracefulTxnShutdown = gracefulTxnShutdown;
     }
 
     public void startReceiving() {
@@ -373,6 +376,19 @@ public class VersionOneProtocolChannelReceiver implements Channel.Receiver, Depl
         }
     }
 
+    private void notifyModuleUnavailable() {
+        // get the initial available modules and send a message to the client
+        final Map<DeploymentModuleIdentifier, ModuleDeployment> availableModules = this.deploymentRepository.getStartedModules();
+        if (availableModules != null && !availableModules.isEmpty()) {
+            try {
+                EjbLogger.ROOT_LOGGER.debugf("Sending module unavailability message on suspend of server, containing %s module(s) to channel %s", availableModules.size(), this.channelAssociation.getChannel());
+                this.sendModuleUnAvailability(availableModules.keySet().toArray(new DeploymentModuleIdentifier[availableModules.size()]));
+            } catch (IOException e) {
+                EjbLogger.ROOT_LOGGER.failedToSendModuleAvailabilityMessageToClient(e, this.channelAssociation.getChannel());
+            }
+        }
+    }
+
     /**
      * Does all the necessary cleanup when a channel is no longer usable
      */
@@ -399,23 +415,24 @@ public class VersionOneProtocolChannelReceiver implements Channel.Receiver, Depl
 
     @Override
     public void preSuspend(ServerActivityCallback listener) {
-        // get the initial available modules and send a message to the client
-        final Map<DeploymentModuleIdentifier, ModuleDeployment> availableModules = this.deploymentRepository.getStartedModules();
-        if (availableModules != null && !availableModules.isEmpty()) {
-            try {
-                EjbLogger.ROOT_LOGGER.debugf("Sending module unavailability message on suspend of server, containing %s module(s) to channel %s", availableModules.size(), this.channelAssociation.getChannel());
-                this.sendModuleUnAvailability(availableModules.keySet().toArray(new DeploymentModuleIdentifier[availableModules.size()]));
-            } catch (IOException e) {
-                EjbLogger.ROOT_LOGGER.failedToSendModuleAvailabilityMessageToClient(e, this.channelAssociation.getChannel());
-            } finally {
-                listener.done();
+        try {
+            if (!gracefulTxnShutdown) {
+                notifyModuleUnavailable();
             }
+        } finally {
+            listener.done();
         }
     }
 
     @Override
     public void suspended(ServerActivityCallback listener) {
-        listener.done();
+        try {
+            if (gracefulTxnShutdown) {
+                notifyModuleUnavailable();
+            }
+        } finally {
+            listener.done();
+        }
     }
 
     @Override
