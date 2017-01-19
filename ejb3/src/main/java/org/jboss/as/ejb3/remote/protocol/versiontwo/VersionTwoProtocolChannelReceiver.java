@@ -51,8 +51,9 @@ public class VersionTwoProtocolChannelReceiver extends VersionOneProtocolChannel
     public VersionTwoProtocolChannelReceiver(final ChannelAssociation channelAssociation, final DeploymentRepository deploymentRepository,
                                              final EJBRemoteTransactionsRepository transactionsRepository, final RegistryCollector<String, List<ClientMapping>> clientMappingRegistryCollector,
                                              final MarshallerFactory marshallerFactory, final ExecutorService executorService,
-                                             final RemoteAsyncInvocationCancelStatusService asyncInvocationCancelStatusService, final SuspendController suspendController) {
-        super(channelAssociation, deploymentRepository, transactionsRepository, clientMappingRegistryCollector, marshallerFactory, executorService, asyncInvocationCancelStatusService, suspendController);
+                                             final RemoteAsyncInvocationCancelStatusService asyncInvocationCancelStatusService, final SuspendController suspendController,
+                                             final boolean gracefulTxnShutdown) {
+        super(channelAssociation, deploymentRepository, transactionsRepository, clientMappingRegistryCollector, marshallerFactory, executorService, asyncInvocationCancelStatusService, suspendController, gracefulTxnShutdown);
     }
 
 

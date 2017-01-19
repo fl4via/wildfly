@@ -87,16 +87,19 @@ public class EJBRemoteConnectorService implements Service<EJBRemoteConnectorServ
     private volatile Registration registration;
     private final byte serverProtocolVersion;
     private final String[] supportedMarshallingStrategies;
+    private boolean gracefulTxnShutdown;
     private final OptionMap channelCreationOptions;
 
-    public EJBRemoteConnectorService(final byte serverProtocolVersion, final String[] supportedMarshallingStrategies) {
-        this(serverProtocolVersion, supportedMarshallingStrategies, OptionMap.EMPTY);
+    public EJBRemoteConnectorService(final byte serverProtocolVersion, final String[] supportedMarshallingStrategies,
+            final boolean gracefulTxnShutodwn) {
+        this(serverProtocolVersion, supportedMarshallingStrategies, gracefulTxnShutodwn, OptionMap.EMPTY);
     }
 
     public EJBRemoteConnectorService(final byte serverProtocolVersion, final String[] supportedMarshallingStrategies,
-                                     final OptionMap channelCreationOptions) {
+                                     final boolean gracefulTxnShutdown, final OptionMap channelCreationOptions) {
         this.serverProtocolVersion = serverProtocolVersion;
         this.supportedMarshallingStrategies = supportedMarshallingStrategies;
+        this.gracefulTxnShutdown = gracefulTxnShutdown;
         this.channelCreationOptions = channelCreationOptions;
     }
 
@@ -122,6 +125,10 @@ public class EJBRemoteConnectorService implements Service<EJBRemoteConnectorServ
         registration.close();
         // reset the EJBClientTransactionContext on this server
         EJBClientTransactionContext.setSelector(new ConstantContextSelector<EJBClientTransactionContext>(null));
+    }
+
+    public void enableGracefulTxnShutdown(boolean enable) {
+        this.gracefulTxnShutdown = enable;
     }
 
     public String getProtocol() {
@@ -257,14 +264,14 @@ public class EJBRemoteConnectorService implements Service<EJBRemoteConnectorServ
                     case 0x01:
                         final VersionOneProtocolChannelReceiver versionOneProtocolHandler = new VersionOneProtocolChannelReceiver(this.channelAssociation, deploymentRepository,
                                 EJBRemoteConnectorService.this.ejbRemoteTransactionsRepositoryInjectedValue.getValue(), clientMappingRegistryCollector,
-                                marshallerFactory, executorService.getOptionalValue(), asyncInvocationCancelStatus, suspendController);
+                                marshallerFactory, executorService.getOptionalValue(), asyncInvocationCancelStatus, suspendController, gracefulTxnShutdown);
                         // trigger the receiving
                         versionOneProtocolHandler.startReceiving();
                         break;
                     case 0x02:
                         final VersionTwoProtocolChannelReceiver versionTwoProtocolHandler = new VersionTwoProtocolChannelReceiver(this.channelAssociation, deploymentRepository,
                                 EJBRemoteConnectorService.this.ejbRemoteTransactionsRepositoryInjectedValue.getValue(), clientMappingRegistryCollector,
-                                marshallerFactory, executorService.getOptionalValue(), asyncInvocationCancelStatus, suspendController);
+                                marshallerFactory, executorService.getOptionalValue(), asyncInvocationCancelStatus, suspendController, gracefulTxnShutdown);
                         // trigger the receiving
                         versionTwoProtocolHandler.startReceiving();
                         break;
