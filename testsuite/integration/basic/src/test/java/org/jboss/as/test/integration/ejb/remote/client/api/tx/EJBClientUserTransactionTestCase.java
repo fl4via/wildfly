@@ -22,12 +22,25 @@
 
 package org.jboss.as.test.integration.ejb.remote.client.api.tx;
 
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.NAME;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUBSYSTEM;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.UNDEFINE_ATTRIBUTE_OPERATION;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.VALUE;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.WRITE_ATTRIBUTE_OPERATION;
+
+import javax.transaction.UserTransaction;
+
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.test.api.ArquillianResource;
+import org.jboss.as.arquillian.api.ServerSetup;
+import org.jboss.as.arquillian.api.ServerSetupTask;
 import org.jboss.as.arquillian.container.ManagementClient;
-import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
+import org.jboss.as.controller.PathAddress;
+import org.jboss.as.controller.operations.common.Util;
+import org.jboss.as.ejb3.subsystem.EJB3SubsystemRootResourceDefinition;
 import org.jboss.as.test.integration.ejb.remote.common.EJBManagementUtil;
 import org.jboss.dmr.ModelNode;
 import org.jboss.ejb.client.EJBClient;
@@ -44,14 +57,34 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import javax.transaction.UserTransaction;
-
 /**
  * @author Jaikiran Pai
  */
 @RunWith(Arquillian.class)
 @RunAsClient
+@ServerSetup(EJBClientUserTransactionTestCase.GracefulTxnShutdownSetup.class)
 public class EJBClientUserTransactionTestCase {
+
+    public static class GracefulTxnShutdownSetup implements ServerSetupTask {
+
+        public GracefulTxnShutdownSetup() {}
+
+        public void setup(ManagementClient managementClient, String containerId) throws Exception {
+            final ModelNode operation = Util
+                    .createOperation(WRITE_ATTRIBUTE_OPERATION, PathAddress.pathAddress(SUBSYSTEM, "ejb3"));
+            operation.get(NAME).set(EJB3SubsystemRootResourceDefinition.ENABLE_GRACEFUL_TXN_SHUTDOWN.getName());
+            operation.get(VALUE).set(true);
+            managementClient.getControllerClient().execute(operation);
+        }
+
+        public void tearDown(ManagementClient managementClient, String containerId) throws Exception {
+            final ModelNode operation = Util
+                    .createOperation(UNDEFINE_ATTRIBUTE_OPERATION, PathAddress.pathAddress(SUBSYSTEM, "ejb3"));
+            operation.get(NAME).set(EJB3SubsystemRootResourceDefinition.ENABLE_GRACEFUL_TXN_SHUTDOWN.getName());
+            managementClient.getControllerClient().execute(operation);
+        }
+    }
+
     private static final Logger logger = Logger.getLogger(EJBClientUserTransactionTestCase.class);
 
     private static final String APP_NAME = "ejb-remote-client-api-usertx-test";
@@ -288,19 +321,29 @@ public class EJBClientUserTransactionTestCase {
         UserTransaction userTransaction = EJBClient.getUserTransaction(nodeName);
         userTransaction.begin();
         try {
-            ModelNode op = new ModelNode();
-            op.get(ModelDescriptionConstants.OP).set("suspend");
-            managementClient.getControllerClient().execute(op);
-
             // invoke the bean
             cmtRemoteBean.mandatoryTxOp();
-            // end the tx
-            userTransaction.commit();
 
+            ModelNode op = new ModelNode();
+            op.get(OP).set("suspend");
+            managementClient.getControllerClient().execute(op);
+
+            Thread.sleep(10000);
+            // end the tx
+            //try {
+                userTransaction.commit();
+              //  Assert.fail("Exception expected, server is shutdown");
+            //} catch (Exception e) {
+                // expected
+            //}
+
+            userTransaction = EJBClient.getUserTransaction(nodeName);
+            userTransaction.begin();
             try {
-                userTransaction.begin();
+                // invoke the bean again
+                cmtRemoteBean.mandatoryTxOp();
                 Assert.fail("Exception expected, server is shutdown");
-            } catch (Exception expected) {
+            } catch (IllegalStateException expected) {
                 // expected
             }
         } catch (Exception e) {
@@ -309,7 +352,7 @@ public class EJBClientUserTransactionTestCase {
         } finally {
             // resume server
             ModelNode op = new ModelNode();
-            op.get(ModelDescriptionConstants.OP).set("resume");
+            op.get(OP).set("resume");
             managementClient.getControllerClient().execute(op);
 
         }
@@ -323,7 +366,7 @@ public class EJBClientUserTransactionTestCase {
 
             // suspend server
             ModelNode op = new ModelNode();
-            op.get(ModelDescriptionConstants.OP).set("suspend");
+            op.get(OP).set("suspend");
             managementClient.getControllerClient().execute(op);
 
             // can continue invoking bean with current transaction
@@ -331,7 +374,7 @@ public class EJBClientUserTransactionTestCase {
         } catch (Exception e) {
             // resume server
             ModelNode op = new ModelNode();
-            op.get(ModelDescriptionConstants.OP).set("resume");
+            op.get(OP).set("resume");
             managementClient.getControllerClient().execute(op);
             throw e;
         } finally {
@@ -349,7 +392,7 @@ public class EJBClientUserTransactionTestCase {
 
         // resume server
         ModelNode op = new ModelNode();
-        op.get(ModelDescriptionConstants.OP).set("resume");
+        op.get(OP).set("resume");
         managementClient.getControllerClient().execute(op);
 
         try {

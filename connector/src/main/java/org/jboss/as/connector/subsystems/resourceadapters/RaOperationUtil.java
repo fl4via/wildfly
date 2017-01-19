@@ -268,6 +268,7 @@ public class RaOperationUtil {
 
             recovery = new Recovery(credential, recoverPlugin, noRecovery);
         }
+        // FIXME taking configProperties from where?
         ModifiableConnDef connectionDefinition = new ModifiableConnDef(configProperties, className, jndiName, poolName,
                 enabled, useJavaContext, useCcm, pool, timeOut, validation, security, recovery, sharable, enlistment, connectable, tracking, mcp, enlistmentTrace);
 
