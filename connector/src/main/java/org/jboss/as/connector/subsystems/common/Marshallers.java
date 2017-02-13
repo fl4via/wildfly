@@ -38,13 +38,13 @@ public class Marshallers {
         @Override
         public boolean isMarshallable(final AttributeDefinition attribute, final ModelNode resourceModel, final boolean marshallDefault) {
             // will only marshall true attributes
-            return resourceModel.hasDefined(attribute.getName()) && resourceModel.get(attribute.getName()).asBoolean();
+            return resourceModel.hasDefined(attribute.getName()) && resourceModel.get(attribute.getName()).resolve().asBoolean();
         }
 
         @Override
         public void marshallAsElement(AttributeDefinition attribute, ModelNode resourceModel, boolean marshallDefault, XMLStreamWriter writer) throws
                 XMLStreamException {
-            if (resourceModel.hasDefined(attribute.getName()) && resourceModel.get(attribute.getName()).asBoolean()) {
+            if (resourceModel.hasDefined(attribute.getName()) && resourceModel.get(attribute.getName()).resolve().asBoolean()) {
                 writer.writeEmptyElement(attribute.getXmlName());
             }
         }

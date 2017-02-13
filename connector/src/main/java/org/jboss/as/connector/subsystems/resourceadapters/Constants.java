@@ -416,7 +416,6 @@ public class Constants {
             .setXmlName(Security.Tag.ELYTRON_ENABLED.getLocalName())
             .setAllowExpression(true)
             .setDefaultValue(new ModelNode(ELYTRON_MANAGED_SECURITY))
-            .setAttributeMarshaller(Marshallers.BOOLEAN_PRESENCE_TYPE_MARSHALLER)
             .addAccessConstraint(ResourceAdaptersExtension.RA_SECURITY_DEF)
             .build();
     static SimpleAttributeDefinition AUTHENTICATION_CONTEXT = new SimpleAttributeDefinitionBuilder(AUTHENTICATION_CONTEXT_NAME, ModelType.STRING, true)
@@ -576,7 +575,6 @@ public class Constants {
             .setAllowExpression(true)
             .setMeasurementUnit(MeasurementUnit.NONE)
             .setDefaultValue(new ModelNode(ELYTRON_MANAGED_SECURITY))
-            .setAttributeMarshaller(Marshallers.BOOLEAN_PRESENCE_TYPE_MARSHALLER)
             .addAccessConstraint(ResourceAdaptersExtension.RA_SECURITY_DEF)
             .build();
 
