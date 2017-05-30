@@ -2089,6 +2089,7 @@ public class DsParser extends AbstractParser {
                         }
                         case ALLOW_MULTIPLE_USERS: {
                             String value = rawElementText(reader);
+                            //value = value == null ? "true" : value;
                             ALLOW_MULTIPLE_USERS.parseAndSetParameter(value, operation, reader);
                             break;
                         }
@@ -2170,6 +2171,7 @@ public class DsParser extends AbstractParser {
                         }
                         case ALLOW_MULTIPLE_USERS: {
                             String value = rawElementText(reader);
+                            //value = value == null ? "true" : value;
                             ALLOW_MULTIPLE_USERS.parseAndSetParameter(value, operation, reader);
                             break;
                         }
