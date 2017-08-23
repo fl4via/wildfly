@@ -17,17 +17,26 @@ package org.jboss.as.connector.metadata.ironjacamar;
 
 import org.jboss.as.connector.metadata.api.common.Credential;
 import org.jboss.as.connector.metadata.api.common.Security;
+import org.jboss.as.connector.metadata.api.resourceadapter.WorkManagerSecurity;
 import org.jboss.as.connector.metadata.common.CredentialImpl;
 import org.jboss.as.connector.metadata.common.SecurityImpl;
+import org.jboss.as.connector.metadata.resourceadapter.WorkManagerSecurityImpl;
 import org.jboss.jca.common.api.metadata.common.Recovery;
 import org.jboss.jca.common.api.metadata.ds.DataSource;
+import org.jboss.jca.common.api.metadata.resourceadapter.WorkManager;
 import org.jboss.jca.common.api.validator.ValidateException;
 import org.jboss.jca.common.metadata.ParserException;
 
 import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
 
 import static javax.xml.stream.XMLStreamConstants.END_ELEMENT;
 import static javax.xml.stream.XMLStreamConstants.START_ELEMENT;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Extension of {@link org.jboss.jca.common.metadata.ironjacamar.IronJacamarParser} with added Elytron support.
@@ -163,6 +172,130 @@ public class IronJacamarParser extends org.jboss.jca.common.metadata.ironjacamar
                         }
                         case AUTHENTICATION_CONTEXT: {
                             authenticationContext = elementAsString(reader);
+                            break;
+                        }
+                        default :
+                            throw new ParserException("bundle.unexpectedElement(reader.getLocalName())");
+                    }
+                    break;
+                }
+            }
+        }
+        throw new ParserException("bundle.unexpectedEndOfDocument()");
+    }
+
+    /**
+     * Parse workmanager's security element
+     * @param reader The reader
+     * @return The value
+     * @exception XMLStreamException XMLStreamException
+     * @exception ParserException ParserException
+     * @exception ValidateException ValidateException
+     */
+    protected WorkManagerSecurity parseWorkManagerSecurity(XMLStreamReader reader) throws XMLStreamException,
+            ParserException, ValidateException {
+        boolean mappingRequired = false;
+        String domain = null;
+        boolean elytronEnabled = false;
+        String defaultPrincipal = null;
+        List<String> defaultGroups = null;
+        Map<String, String> userMappings = null;
+        Map<String, String> groupMappings = null;
+
+        boolean userMappingEnabled = false;
+
+        while (reader.hasNext()) {
+            switch (reader.nextTag()) {
+                case END_ELEMENT : {
+                    if (WorkManager.Tag.forName(reader.getLocalName()) == WorkManager.Tag.SECURITY) {
+                        return new WorkManagerSecurityImpl(mappingRequired, domain, elytronEnabled,
+                                defaultPrincipal, defaultGroups,
+                                userMappings, groupMappings);
+                    } else {
+                        if (WorkManagerSecurity.Tag.forName(reader.getLocalName()) == WorkManagerSecurity.Tag.UNKNOWN) {
+                            throw new ParserException("bundle.unexpectedEndTag(reader.getLocalName())");
+                        }
+                    }
+                    break;
+                }
+                case START_ELEMENT : {
+                    switch (WorkManagerSecurity.Tag.forName(reader.getLocalName())) {
+                        case DEFAULT_GROUPS :
+                        case MAPPINGS : {
+                            // Skip
+                            break;
+                        }
+                        case MAPPING_REQUIRED : {
+                            mappingRequired = elementAsBoolean(reader);
+                            break;
+                        }
+                        case DOMAIN : {
+                            domain = elementAsString(reader);
+                            break;
+                        }
+                        case ELYTRON_SECURITY_DOMAIN: {
+                            domain = elementAsString(reader);
+                            elytronEnabled = false;
+                            break;
+                        }
+                        case DEFAULT_PRINCIPAL : {
+                            defaultPrincipal = elementAsString(reader);
+                            break;
+                        }
+                        case GROUP : {
+                            if (defaultGroups == null)
+                                defaultGroups = new ArrayList<String>(1);
+
+                            defaultGroups.add(elementAsString(reader));
+                            break;
+                        }
+                        case USERS : {
+                            userMappingEnabled = true;
+                            break;
+                        }
+                        case GROUPS : {
+                            userMappingEnabled = false;
+                            break;
+                        }
+                        case MAP : {
+                            if (userMappingEnabled) {
+                                if (userMappings == null)
+                                    userMappings = new HashMap<String, String>();
+
+                                String from = attributeAsString(reader, WorkManagerSecurity.Attribute.FROM.getLocalName());
+
+                                if (from == null || from.trim().equals(""))
+                                    throw new ParserException(
+                                            "bundle.requiredAttributeMissing(WorkManagerSecurity.Attribute.FROM.getLocalName(), reader.getLocalName())");
+
+                                String to = attributeAsString(reader, WorkManagerSecurity.Attribute.TO.getLocalName());
+
+                                if (to == null || to.trim().equals(""))
+                                    throw new ParserException(
+                                            "bundle.requiredAttributeMissing(WorkManagerSecurity.Attribute.TO.getLocalName()," +
+                                                    "reader.getLocalName())");
+
+                                userMappings.put(from, to);
+                            } else {
+                                if (groupMappings == null)
+                                    groupMappings = new HashMap<String, String>();
+
+                                String from = attributeAsString(reader, WorkManagerSecurity.Attribute.FROM.getLocalName());
+
+                                if (from == null || from.trim().equals(""))
+                                    throw new ParserException(
+                                            "bundle.requiredAttributeMissing(WorkManagerSecurity.Attribute.FROM.getLocalName(),"
+                                                    + "reader.getLocalName())");
+
+                                String to = attributeAsString(reader, WorkManagerSecurity.Attribute.TO.getLocalName());
+
+                                if (to == null || to.trim().equals(""))
+                                    throw new ParserException(
+                                            "bundle.requiredAttributeMissing(WorkManagerSecurity.Attribute.TO.getLocalName()," +
+                                                    "reader.getLocalName())");
+
+                                groupMappings.put(from, to);
+                            }
                             break;
                         }
                         default :
