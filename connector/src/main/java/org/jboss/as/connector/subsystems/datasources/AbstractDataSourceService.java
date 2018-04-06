@@ -534,16 +534,13 @@ public abstract class AbstractDataSourceService implements Service<DataSource> {
         @Override
         protected ManagedConnectionFactory createMcf(XaDataSource arg0, String arg1, ClassLoader arg2)
                 throws NotFoundException, DeployException {
-            final WildFlyXaMCF xaManagedConnectionFactory = new WildFlyXaMCF();
+            final WildFlyXaMCF xaManagedConnectionFactory = new WildFlyXaMCF(xaDataSourceConfig.getXaDataSourceProperty());
 
             if (xaDataSourceConfig.getUrlDelimiter() != null) {
                 xaManagedConnectionFactory.setURLDelimiter(xaDataSourceConfig.getUrlDelimiter());
             }
             if (xaDataSourceConfig.getXaDataSourceClass() != null) {
                 xaManagedConnectionFactory.setXADataSourceClass(xaDataSourceConfig.getXaDataSourceClass());
-            }
-            if (xaDataSourceConfig.getXaDataSourceProperty() != null) {
-                xaManagedConnectionFactory.setXaProps(xaDataSourceConfig.getXaDataSourceProperty());
             }
             if (xaDataSourceConfig.getUrlSelectorStrategyClassName() != null) {
                 xaManagedConnectionFactory
@@ -733,8 +730,8 @@ public abstract class AbstractDataSourceService implements Service<DataSource> {
 
         private static final long serialVersionUID = 4876371551002746953L;
 
-        public void setXaProps(Map<String, String> inputProperties) {
-            xaProps.putAll(inputProperties);
+        public WildFlyXaMCF(Map<String, String> xaDataSourceProperties) {
+            super(xaDataSourceProperties);
         }
 
     }
