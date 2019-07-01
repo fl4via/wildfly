@@ -54,6 +54,7 @@ public class DistributableCache<K, V extends Identifiable<K> & Contextual<Batch>
     private final RemoveListener<V> listener;
 
     public DistributableCache(BeanManager<K, V, Batch> manager, StatefulObjectFactory<V> factory, TransactionSynchronizationRegistry tsr) {
+        System.out.println("DISTRIBUTABLE CACHE");
         this.manager = manager;
         this.factory = factory;
         this.tsr = tsr;

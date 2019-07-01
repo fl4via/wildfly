@@ -31,6 +31,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * A pool with a maximum size.
@@ -39,6 +40,8 @@ import java.util.concurrent.TimeUnit;
  * @author <a href="mailto:kabir.khan@jboss.org">Kabir Khan</a>
  */
 public class StrictMaxPool<T> extends AbstractPool<T> {
+
+
 
     /**
      * A FIFO semaphore that is set when the strict max size behavior is in effect.
@@ -65,7 +68,7 @@ public class StrictMaxPool<T> extends AbstractPool<T> {
         super(factory);
         this.maxSize = maxSize;
         this.semaphore = new Semaphore(maxSize, false);
-        this.timeout = timeout;
+        this.timeout = TimeUnit.NANOSECONDS.convert(timeout, timeUnit);
         this.timeUnit = timeUnit;
     }
 
@@ -105,9 +108,9 @@ public class StrictMaxPool<T> extends AbstractPool<T> {
      */
     public T get() {
         try {
-            boolean acquired = semaphore.tryAcquire(timeout, timeUnit);
+            boolean acquired = semaphore.tryAcquire(timeout, TimeUnit.NANOSECONDS);
             if (!acquired)
-                throw EjbLogger.ROOT_LOGGER.failedToAcquirePermit(timeout, timeUnit);
+                throw EjbLogger.ROOT_LOGGER.failedToAcquirePermit(timeUnit.convert(timeout, TimeUnit.NANOSECONDS), timeUnit);
         } catch (InterruptedException e) {
             throw EjbLogger.ROOT_LOGGER.acquireSemaphoreInterrupted();
         }
@@ -170,5 +173,152 @@ public class StrictMaxPool<T> extends AbstractPool<T> {
         for (T obj = pool.poll(); obj != null; obj = pool.poll()) {
             destroy(obj);
         }
+    }
+
+    /**
+     * Non-fair lock-free Semaphore with customizable back-off strategy for high
+     * contention scenarios.
+     *
+     * @author user2296177
+     * @version 1.0
+     *
+     */
+
+}
+
+class MySemaphore {
+    /**
+     * Default back-off strategy to prevent busy-wait loop. Calls
+     * Thread.sleep(0, 1);. Has better performance and lower CPU usage than
+     * Thread.yield() inside busy-wait loop.
+     */
+    private static Runnable defaultBackoffStrategy = () -> {
+        try {
+            Thread.sleep( 0, 1 );
+        } catch ( InterruptedException e ) {
+            e.printStackTrace();
+        }
+    };
+
+    private AtomicInteger permitCount;
+    private final Runnable backoffStrategy;
+
+    /**
+     * Construct a Semaphore instance with maxPermitCount permits and the
+     * default back-off strategy.
+     *
+     * @param maxPermitCount
+     *            Maximum number of permits that can be distributed.
+     */
+    public MySemaphore( final int maxPermitCount ) {
+        this( maxPermitCount, defaultBackoffStrategy );
+    }
+
+    /**
+     * Construct a Semaphore instance with maxPermitCount permits and a custom
+     * Runnable to run a back-off strategy during contention.
+     *
+     * @param maxPermitCount
+     *            Maximum number of permits that can be distributed.
+     * @param backoffStrategy
+     *            Runnable back-off strategy to run during high contention.
+     */
+    public MySemaphore( final int maxPermitCount, final Runnable backoffStrategy ) {
+        permitCount = new AtomicInteger( maxPermitCount );
+        this.backoffStrategy = backoffStrategy;
+    }
+
+    /**
+     * Attempt to acquire one permit and immediately return.
+     *
+     * @return true : acquired one permits.<br>
+     *         false: did not acquire one permit.
+     */
+    public boolean tryAcquire() {
+        return tryAcquire( 1 );
+    }
+
+    /**
+     * Attempt to acquire n permits and immediately return.
+     *
+     * @param n
+     *            Number of permits to acquire.
+     * @return true : acquired n permits.<br>
+     *         false: did not acquire n permits.
+     */
+    public boolean tryAcquire( final int n ) {
+        return tryDecrementPermitCount( n );
+    }
+
+    /**
+     * Acquire one permit.
+     */
+    public void acquire() {
+        acquire( 1 );
+    }
+
+    public int availablePermits() {
+        return permitCount.get();
+    }
+
+    /**
+     * Acquire n permits.
+     *
+     * @param n
+     *            Number of permits to acquire.
+     */
+    public void acquire( final int n ) {
+        while ( !tryDecrementPermitCount( n ) ) {
+            backoffStrategy.run();
+        }
+    }
+
+    public boolean tryAcquire( long timeout, TimeUnit timeUnit) {
+        final long currentTime = System.nanoTime();
+        while ( !tryDecrementPermitCount(1) ) {
+            if (System.nanoTime() - currentTime >= timeout) {
+                return false;
+            }
+            backoffStrategy.run();
+        }
+        return true;
+    }
+
+    /**
+     * Release one permit.
+     */
+    public void release() {
+        release( 1 );
+    }
+
+    /**
+     * Release n permits.
+     *
+     * @param n
+     *            Number of permits to release.
+     */
+    public void release( final int n ) {
+        permitCount.addAndGet( n );
+    }
+
+    /**
+     * Try decrementing the current number of permits by n.
+     *
+     * @param n
+     *            The number to decrement the number of permits.
+     * @return true : the number of permits was decremented by n.<br>
+     *         false: decrementing the number of permits results in a negative
+     *         value or zero.
+     */
+    private boolean tryDecrementPermitCount( final int n ) {
+        int oldPermitCount;
+        int newPermitCount;
+        do {
+            oldPermitCount = permitCount.get();
+            newPermitCount = oldPermitCount - n;
+            //if ( newPermitCount > n ) throw new ArithmeticException( "Overflow" );
+            if ( /*oldPermitCount == 0 || */newPermitCount < 0 ) return false;
+        } while ( !permitCount.compareAndSet( oldPermitCount, newPermitCount ) );
+        return true;
     }
 }

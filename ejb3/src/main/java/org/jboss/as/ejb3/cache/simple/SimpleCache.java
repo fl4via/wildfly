@@ -59,6 +59,7 @@ public class SimpleCache<K, V extends Identifiable<K>> implements Cache<K, V> {
     private final ScheduledExecutorService executor;
 
     public SimpleCache(StatefulObjectFactory<V> factory, IdentifierFactory<K> identifierFactory, StatefulTimeoutInfo timeout, ServerEnvironment environment, ScheduledExecutorService executor) {
+        System.out.println("SIMPLE CACHE");
         this.factory = factory;
         this.identifierFactory = identifierFactory;
         this.timeout = timeout;
@@ -169,6 +170,8 @@ public class SimpleCache<K, V extends Identifiable<K>> implements Cache<K, V> {
                     // However, removing it directly is faster than scheduling it for immediate removal.
                     remove(id);
                 }
+            } else {
+                remove(id);
             }
         }
     }

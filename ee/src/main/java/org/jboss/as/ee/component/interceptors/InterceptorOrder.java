@@ -158,7 +158,7 @@ public class InterceptorOrder {
     }
 
     public static final class View {
-        public static final int CHECKING_INTERCEPTOR = 1;
+        public static final int CHECKING_INTERCEPTOR = 1; // extra
         public static final int TCCL_INTERCEPTOR = 0x003;
         public static final int INVOCATION_TYPE = 0x005;
         public static final int EJB_IIOP_TRANSACTION = 0x020;
@@ -169,18 +169,18 @@ public class InterceptorOrder {
         public static final int SHUTDOWN_INTERCEPTOR = 0x220;
         public static final int INVALID_METHOD_EXCEPTION = 0x230;
         public static final int STARTUP_AWAIT_INTERCEPTOR = 0x248;
-        public static final int SINGLETON_CONTAINER_MANAGED_CONCURRENCY_INTERCEPTOR = 0x240;
+        public static final int SINGLETON_CONTAINER_MANAGED_CONCURRENCY_INTERCEPTOR = 0x240; // extra
         // Allows users to specify user application specific "container interceptors" which run before the
         // other JBoss specific container interceptors like the security interceptor
         public static final int USER_APP_SPECIFIC_CONTAINER_INTERCEPTORS = 0x249;
         public static final int SECURITY_CONTEXT = 0x250;
-        public static final int POLICY_CONTEXT = 0x260;
-        public static final int SECURITY_ROLES = 0x270;
+        public static final int POLICY_CONTEXT = 0x260; // extra
+        public static final int SECURITY_ROLES = 0x270; // extra
         public static final int EJB_SECURITY_AUTHORIZATION_INTERCEPTOR = 0x300;
-        public static final int RUN_AS_PRINCIPAL = 0x310;
-        public static final int EXTRA_PRINCIPAL_ROLES = 0x320;
-        public static final int RUN_AS_ROLE = 0x330;
-        public static final int SECURITY_IDENTITY_OUTFLOW = 0x340;
+        public static final int RUN_AS_PRINCIPAL = 0x310; // extra
+        public static final int EXTRA_PRINCIPAL_ROLES = 0x320; // extra
+        public static final int RUN_AS_ROLE = 0x330; // extra
+        public static final int SECURITY_IDENTITY_OUTFLOW = 0x340; // extra
         // after security we take note of the invocation
         public static final int EJB_WAIT_TIME_INTERCEPTOR = 0x350;
         public static final int INVOCATION_CONTEXT_INTERCEPTOR = 0x400;
@@ -190,12 +190,12 @@ public class InterceptorOrder {
          */
         @Deprecated
         public static final int REMOTE_TRANSACTION_PROPAGATION_INTERCEPTOR = 0x450;
-        public static final int CDI_REQUEST_SCOPE = 0x480;
+        public static final int CDI_REQUEST_SCOPE = 0x480; // extra
         public static final int CMT_TRANSACTION_INTERCEPTOR = 0x500;
        public static final int EE_SETUP = 0x510;
         public static final int HOME_METHOD_INTERCEPTOR = 0x600;
         public static final int ASSOCIATING_INTERCEPTOR = 0x700;
-        public static final int XTS_INTERCEPTOR = 0x701;
+        public static final int XTS_INTERCEPTOR = 0x701; // extra
         public static final int SESSION_REMOVE_INTERCEPTOR = 0x900;
         public static final int COMPONENT_DISPATCHER = 0xA00;
 
