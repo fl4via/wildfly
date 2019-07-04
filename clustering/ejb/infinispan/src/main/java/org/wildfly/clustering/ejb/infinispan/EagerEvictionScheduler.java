@@ -67,6 +67,7 @@ public class EagerEvictionScheduler<I, T> implements Scheduler<I>, BeanGroupEvic
     public void schedule(I id) {
         BeanEntry<I> entry = this.factory.findValue(id);
         if (entry != null) {
+            System.out.println("SCHEDULE EAGER EVICTION bean id " + id);
             InfinispanEjbLogger.ROOT_LOGGER.tracef("Scheduling stateful session bean %s to passivate in %s", id, this.idleTimeout);
             Runnable task = new EvictionTask<>(this, id, entry.getGroupId(), this);
             // Make sure the map insertion happens before map removal (during task execution).
@@ -78,6 +79,7 @@ public class EagerEvictionScheduler<I, T> implements Scheduler<I>, BeanGroupEvic
 
     @Override
     public void cancel(I id) {
+        System.out.println("CANCEL EAGER EVICTION bean id " + id);
         Future<?> future = this.evictionFutures.remove(id);
         if (future != null) {
             future.cancel(false);

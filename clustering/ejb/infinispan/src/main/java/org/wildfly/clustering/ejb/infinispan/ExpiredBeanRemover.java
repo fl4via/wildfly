@@ -30,7 +30,6 @@ import org.wildfly.clustering.ejb.infinispan.logging.InfinispanEjbLogger;
  *
  * @author Paul Ferraro
  *
- * @param <G> the group identifier type
  * @param <I> the bean identifier type
  * @param <T> the bean type
  */
@@ -52,6 +51,7 @@ public class ExpiredBeanRemover<I, T> implements BeanRemover<I, T> {
                 InfinispanEjbLogger.ROOT_LOGGER.tracef("Removing expired bean %s", id);
                 return this.factory.remove(id, listener);
             }
+            System.out.println("ExpiredBean for id "+ id + " returning null, found entry " + entry + " but bean was not expired");
             return false;
         }
         return true;

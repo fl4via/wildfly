@@ -42,6 +42,7 @@ import org.wildfly.clustering.infinispan.spi.distribution.Locality;
  * @param <I> the bean identifier type
  * @param <T> the bean type
  */
+// can this be scheduled as a single task for a bunch of beans?
 public class BeanExpirationScheduler<I, T> implements Scheduler<I> {
     final Map<I, Future<?>> expirationFutures = new ConcurrentHashMap<>();
     final Batcher<TransactionBatch> batcher;
@@ -58,6 +59,7 @@ public class BeanExpirationScheduler<I, T> implements Scheduler<I> {
     public void schedule(I id) {
         Duration timeout = this.expiration.getTimeout();
         if (!timeout.isNegative()) {
+            System.out.println("SCHEDULE EXPIRATION bean id " + id);
             InfinispanEjbLogger.ROOT_LOGGER.tracef("Scheduling stateful session bean %s to expire in %s", id, timeout);
             Runnable task = new ExpirationTask(id);
             // Make sure the expiration future map insertion happens before map removal (during task execution).
@@ -69,6 +71,7 @@ public class BeanExpirationScheduler<I, T> implements Scheduler<I> {
 
     @Override
     public void cancel(I id) {
+        new Exception("CANCEL EXPIRATION bean id " + id).printStackTrace();
         Future<?> future = this.expirationFutures.remove(id);
         if (future != null) {
             future.cancel(false);
@@ -127,6 +130,7 @@ public class BeanExpirationScheduler<I, T> implements Scheduler<I> {
                     if (removed) {
                         BeanExpirationScheduler.this.expirationFutures.remove(this.id);
                     } else {
+                        System.out.println("BEAN WAS NOT REMOVED!!!!");
                         // If bean failed to expire, likely due to a lock timeout, just reschedule it
                         BeanExpirationScheduler.this.schedule(this.id);
                     }
