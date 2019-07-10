@@ -59,7 +59,7 @@ public class BeanExpirationScheduler<I, T> implements Scheduler<I> {
     public void schedule(I id) {
         Duration timeout = this.expiration.getTimeout();
         if (!timeout.isNegative()) {
-            System.out.println("SCHEDULE EXPIRATION bean id " + id);
+            new Exception("SCHEDULE EXPIRATION bean id " + id).printStackTrace();
             InfinispanEjbLogger.ROOT_LOGGER.tracef("Scheduling stateful session bean %s to expire in %s", id, timeout);
             Runnable task = new ExpirationTask(id);
             // Make sure the expiration future map insertion happens before map removal (during task execution).

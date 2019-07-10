@@ -93,6 +93,7 @@ public class DistributableCache<K, V extends Identifiable<K> & Contextual<Batch>
                 // Nested beans will share the same group identifier
                 V instance = this.factory.createInstance();
                 K id = instance.getId();
+                // TODO remove this close and see what happens!
                 this.manager.createBean(id, (K) CURRENT_GROUP.get(), instance).close();
                 return instance;
             } catch (RuntimeException | Error e) {

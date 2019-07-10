@@ -45,6 +45,11 @@ public class TestCommandDispatcher<C> implements CommandDispatcher<C> {
     }
 
     @Override
+    public boolean isLocal(Node member) {
+        return true;
+    }
+
+    @Override
     public <R> CompletionStage<R> executeOnMember(Command<R, ? super C> command, Node member) throws CommandDispatcherException {
         return this.dispatcher.executeOnMember(command, member);
     }

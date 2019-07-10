@@ -25,7 +25,7 @@ import java.util.Map;
  */
 public class DurationMap <I> {
 
-    private final Duration timeout;
+    private final long timeout;
     private final Map<I, LinkNode> linkNodeMap;
     private LinkNode head;
     private LinkNode tail;
@@ -42,7 +42,7 @@ public class DurationMap <I> {
     }
 
     public DurationMap(Duration timeout) {
-        this.timeout = timeout;
+        this.timeout = timeout.toMillis();
         linkNodeMap = new HashMap<>();
     }
 
@@ -74,9 +74,10 @@ public class DurationMap <I> {
                 head = tail = linkNode;
             }
         }
-        linkNode.expiration = System.currentTimeMillis() + timeout.toMillis();
+        linkNode.expiration = System.currentTimeMillis() + timeout;
     }
 
+    // session is already expired
     public void retryExpiration(I sessionId) {
         synchronized (this) {
             if (linkNodeMap.containsKey(sessionId)) {
@@ -96,19 +97,46 @@ public class DurationMap <I> {
         }
     }
 
+    public void remove(I sessionId) {
+        synchronized (this) {
+            if (!linkNodeMap.containsKey(sessionId)) {
+                return;
+            }
+            removeFromLinkedList(linkNodeMap.remove(sessionId));
+        }
+    }
+
+    private final synchronized void removeFromLinkedList(LinkNode linkNode) {
+        if (linkNode.previous != null) {
+            linkNode.previous.next = linkNode.next;
+        }
+        if (linkNode.next != null) {
+            linkNode.next.previous = linkNode.previous;
+        }
+        if (head == linkNode) {
+            head = linkNode.next;
+        }
+        if (tail == linkNode) {
+            tail = linkNode.previous;
+        }
+    }
+
     public I getExpiredSessionId() {
         // if head is expired
         synchronized (this) {
-            if (head != null && head.expiration >= System.currentTimeMillis()) {
+            if (head != null && head.expiration <= System.currentTimeMillis()) {
                 final I expiredSessionId = head.sessionId;
                 head = head.next;
                 linkNodeMap.remove(expiredSessionId);
-                head.previous = null;
+                if (head != null)
+                    head.previous = null;
                 return expiredSessionId;
             }
             return null;
         }
     }
+
+
 
     public Collection<I> getSessionIds() {
         return linkNodeMap.keySet();

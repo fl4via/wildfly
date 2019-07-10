@@ -35,6 +35,11 @@ public class CommandDispatcherBean implements CommandDispatcher<Node> {
     }
 
     @Override
+    public boolean isLocal(Node node) {
+        return dispatcher.isLocal(node);
+    }
+
+    @Override
     public <R> CompletionStage<R> executeOnMember(Command<R, ? super Node> command, Node member) throws CommandDispatcherException {
         return this.dispatcher.executeOnMember(command, member);
     }

@@ -170,8 +170,8 @@ public class SimpleCache<K, V extends Identifiable<K>> implements Cache<K, V> {
                     // However, removing it directly is faster than scheduling it for immediate removal.
                     remove(id);
                 }
-            } else {
-                remove(id);
+           // } else {
+             //   remove(id);
             }
         }
     }

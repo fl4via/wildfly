@@ -41,7 +41,7 @@ import org.wildfly.clustering.infinispan.spi.distribution.Locality;
  * @param <T> the bean type
  */
 // can this be scheduled as a single task for a bunch of beans?
-public class BeanExpirationScheduler2<I, T> implements Scheduler<I> {
+public class BeanExpirationScheduler2<I, T> implements Scheduler2<I> {
     final Batcher<TransactionBatch> batcher;
     final BeanRemover<I, T> remover;
     final ExpirationConfiguration<T> expiration;
@@ -60,8 +60,8 @@ public class BeanExpirationScheduler2<I, T> implements Scheduler<I> {
         Duration timeout = this.expiration.getTimeout();
         if (durationMap != null) {
             durationMap.resetExpiration(id);
-            if (expireTask != null) {
-                System.out.println("SCHEDULE EXPIRATION bean id " + id);
+            if (expireTask == null) {
+                //System.out.println("SCHEDULE EXPIRATION bean id " + id);
                 InfinispanEjbLogger.ROOT_LOGGER
                         .tracef("Scheduling stateful session bean %s to expire in %s",
                                 id, timeout);
@@ -75,31 +75,39 @@ public class BeanExpirationScheduler2<I, T> implements Scheduler<I> {
     }
 
     @Override
-    public void cancel(I id) {
-        new Exception("CANCEL EXPIRATION bean id " + id).printStackTrace();
+    public void remove(I id) {
+        //new Exception("CANCEL EXPIRATION bean id " + id).printStackTrace();
         /*Future<?> future = this.expirationFutures.remove(id);
         if (future != null) {
             future.cancel(false);
         }*/
-        this.durationMap.resetExpiration(id);
+        this.durationMap.remove(id);
     }
 
-    @Override
+    @Override // rename to remove?
     public void cancel(Locality locality) {
         for (I id: durationMap.getSessionIds()) {
             if (Thread.currentThread().isInterrupted()) break;
             if (!locality.isLocal(id)) {
-                this.cancel(id);
+                this.remove(id);
             }
         }
     }
 
-    @Override
+    @Override // TODO prevent closing and a new task is created simultaneously
     public void close() {
-        expireTask.cancel(false);
-        if (!expireTask.isDone()) {
+        final Future<?> task;
+        synchronized (this) {
+            if (expireTask == null) {
+                return;
+            }
+            task = expireTask;
+            expireTask = null;
+        }
+        task.cancel(false);
+        if (!task.isDone()) {
             try {
-                expireTask.get();
+                task.get();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             } catch (ExecutionException e) {

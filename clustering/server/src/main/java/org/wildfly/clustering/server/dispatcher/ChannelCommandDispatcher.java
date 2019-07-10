@@ -92,6 +92,11 @@ public class ChannelCommandDispatcher<C> implements CommandDispatcher<C> {
     }
 
     @Override
+    public boolean isLocal(Node member) {
+        return this.localDispatcher.isLocal(member);
+    }
+
+    @Override
     public void close() {
         this.closeTask.run();
     }

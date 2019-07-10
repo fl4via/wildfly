@@ -159,7 +159,7 @@ public class InfinispanBeanManagerFactory<I, T> implements BeanManagerFactory<I,
                 return properties;
             }
         };
-        return new InfinispanBeanManager<>(configuration, identifierFactory, beanConfiguration, groupConfiguration);
+        return new InfinispanBeanManager2<>(configuration, identifierFactory, beanConfiguration, groupConfiguration);
     }
 
     private static class SimpleConfiguration<K, V, F> implements Configuration<K, V, F> {
