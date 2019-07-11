@@ -66,7 +66,6 @@ import org.wildfly.clustering.registry.RegistryListener;
 import org.wildfly.common.annotation.NotNull;
 import org.wildfly.security.auth.server.SecurityIdentity;
 import org.wildfly.security.manager.WildFlySecurityManager;
-import org.xnio.XnioIoThread;
 
 import javax.ejb.EJBException;
 import javax.net.ssl.SSLSession;
@@ -298,11 +297,11 @@ final class AssociationImpl implements Association, AutoCloseable {
             } else {
                 //we should already be running in the worker at this point
                 //but we add a guard here just to be 100% safe
-                if(Thread.currentThread() instanceof XnioIoThread) {
-                    request.getRequestExecutor().execute(task);
-                } else {
+//                if(Thread.currentThread() instanceof XnioIoThread) {
+//                    request.getRequestExecutor().execute(task);
+//                } else {
                     task.run();
-                }
+//                }
             }
         }
     }
