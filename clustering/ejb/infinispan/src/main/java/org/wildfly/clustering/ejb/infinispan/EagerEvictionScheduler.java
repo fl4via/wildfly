@@ -22,8 +22,8 @@
 package org.wildfly.clustering.ejb.infinispan;
 
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
@@ -40,27 +40,30 @@ import org.wildfly.clustering.infinispan.spi.distribution.Locality;
 /**
  * Scheduler for eager eviction of a bean.
  * @author Paul Ferraro
+ * @author Flavia Rainone
  */
 public class EagerEvictionScheduler<I, T> implements Scheduler<I>, BeanGroupEvictor<I>, Consumer<I> {
-
-    private final Map<I, Future<?>> evictionFutures = new ConcurrentHashMap<>();
 
     private final BeanFactory<I, T> factory;
     private final ScheduledExecutorService executor;
     private final Duration idleTimeout;
+    private final ExpirationTracker<I> expirationTracker;
+    private final Map<I, I> groupIdMap = new HashMap<>();
+    private Future<?> evictionTask;
 
     private final CommandDispatcher<BeanGroupEvictor<I>> dispatcher;
 
-    public EagerEvictionScheduler(BeanFactory<I, T> factory, BeanGroupEvictor<I> evictor, ScheduledExecutorService executor, Duration idleTimeout, CommandDispatcherFactory dispatcherFactory, String dispatcherName) {
+    EagerEvictionScheduler(BeanFactory<I, T> factory, BeanGroupEvictor<I> evictor, ScheduledExecutorService executor, Duration idleTimeout, CommandDispatcherFactory dispatcherFactory, String dispatcherName) {
         this.factory = factory;
         this.executor = executor;
         this.idleTimeout = idleTimeout;
+        this.expirationTracker = new ExpirationTracker<>(idleTimeout);
         this.dispatcher = dispatcherFactory.createCommandDispatcher(dispatcherName + "/eviction", evictor);
     }
 
     @Override
     public void accept(I id) {
-        this.evictionFutures.remove(id);
+        this.expirationTracker.forget(id);
     }
 
     @Override
@@ -68,25 +71,29 @@ public class EagerEvictionScheduler<I, T> implements Scheduler<I>, BeanGroupEvic
         BeanEntry<I> entry = this.factory.findValue(id);
         if (entry != null) {
             InfinispanEjbLogger.ROOT_LOGGER.tracef("Scheduling stateful session bean %s to passivate in %s", id, this.idleTimeout);
-            Runnable task = new EvictionTask<>(this, id, entry.getGroupId(), this);
+            expirationTracker.trackExpiration(id);
+            if (!groupIdMap.containsKey(id)) {
+                groupIdMap.put(id, entry.getGroupId());
+            }
             // Make sure the map insertion happens before map removal (during task execution).
-            synchronized (task) {
-                this.evictionFutures.put(id, this.executor.schedule(task, this.idleTimeout.toMillis(), TimeUnit.MILLISECONDS));
+            synchronized (this) {
+                if (evictionTask != null) {
+                    Runnable task = new EvictionTask();
+                    evictionTask = this.executor.schedule(task, this.idleTimeout.toMillis(), TimeUnit.MILLISECONDS);
+                }
             }
         }
     }
 
     @Override
     public void cancel(I id) {
-        Future<?> future = this.evictionFutures.remove(id);
-        if (future != null) {
-            future.cancel(false);
-        }
+        expirationTracker.forget(id);
+        groupIdMap.remove(id);
     }
 
     @Override
     public void cancel(Locality locality) {
-        for (I id: this.evictionFutures.keySet()) {
+        for (I id: this.expirationTracker.getTrackedIds()) {
             if (Thread.currentThread().isInterrupted()) break;
             if (!locality.isLocal(id)) {
                 this.cancel(id);
@@ -96,21 +103,24 @@ public class EagerEvictionScheduler<I, T> implements Scheduler<I>, BeanGroupEvic
 
     @Override
     public void close() {
-        for (Future<?> future: this.evictionFutures.values()) {
-            future.cancel(false);
+        final Future<?> task;
+        synchronized (this) {
+            if (this.evictionTask == null) {
+                return;
+            }
+            task = evictionTask;
+
         }
-        for (Future<?> future: this.evictionFutures.values()) {
-            if (!future.isDone()) {
-                try {
-                    future.get();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                } catch (ExecutionException e) {
-                    // Ignore
-                }
+        task.cancel(false);
+        if (!task.isDone()) {
+            try {
+                task.get();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            } catch (ExecutionException e) {
+                // Ignore
             }
         }
-        this.evictionFutures.clear();
         this.dispatcher.close();
     }
 
@@ -134,35 +144,39 @@ public class EagerEvictionScheduler<I, T> implements Scheduler<I>, BeanGroupEvic
         }
 
         @Override
-        public Void execute(BeanGroupEvictor<I> evictor) throws Exception {
+        public Void execute(BeanGroupEvictor<I> evictor) {
             InfinispanEjbLogger.ROOT_LOGGER.tracef("Passivating stateful session bean %s", this.id);
             evictor.evict(this.id);
             return null;
         }
     }
 
-    private static class EvictionTask<I> implements Runnable {
-        private final BeanGroupEvictor<I> evictor;
-        private final I beanId;
-        private final I groupId;
-        private final Consumer<I> finalizer;
-
-        EvictionTask(BeanGroupEvictor<I> evictor, I beanId, I groupId, Consumer<I> finalizer) {
-            this.evictor = evictor;
-            this.beanId = beanId;
-            this.groupId = groupId;
-            this.finalizer = finalizer;
-        }
+    private class EvictionTask implements Runnable {
 
         @Override
         public void run() {
-            try {
-                this.evictor.evict(this.groupId);
-            } finally {
-                synchronized (this) {
-                    this.finalizer.accept(this.beanId);
+            I sessionId;
+            final long currentTime = System.currentTimeMillis();
+            while ((sessionId = expirationTracker.getExpiredId(currentTime)) != null) {
+                InfinispanEjbLogger.ROOT_LOGGER.tracef("Evicting stateful session bean %s", sessionId);
+                I groupId = groupIdMap.remove(sessionId);
+                try {
+                    evict(groupId);
+                } finally {
+                    synchronized (EagerEvictionScheduler.this) {
+                        accept(sessionId);
+                    }
                 }
             }
+            final long nextExpirationInMillis = expirationTracker.getNextExpirationInMillis();
+            synchronized (EagerEvictionScheduler.this) {
+                if (nextExpirationInMillis != -1) {
+                    evictionTask = executor.schedule(this, nextExpirationInMillis, TimeUnit.MILLISECONDS);
+                } else {
+                    evictionTask = null;
+                }
+            }
+
         }
     }
 }

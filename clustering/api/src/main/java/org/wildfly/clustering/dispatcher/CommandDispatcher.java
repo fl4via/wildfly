@@ -45,6 +45,14 @@ public interface CommandDispatcher<C> extends AutoCloseable {
     C getContext();
 
     /**
+     * Returns true if {@code member} is current node
+     *
+     * @param member member node
+     * @return true if {@code member} is this local node
+     */
+    boolean isLocal(Node member);
+
+    /**
      * Executes the specified command on the specified group member.
      * If the member has no corresponding dispatcher, the returned completion stage throws a {@link java.util.concurrent.CancellationException}.
      *

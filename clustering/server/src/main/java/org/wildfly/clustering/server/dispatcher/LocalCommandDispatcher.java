@@ -53,6 +53,12 @@ public class LocalCommandDispatcher<C> implements CommandDispatcher<C> {
     }
 
     @Override
+    public boolean isLocal(Node member) {
+        assert (node == member);
+        return true;
+    }
+
+    @Override
     public <R> CompletionStage<R> executeOnMember(Command<R, ? super C> command, Node member) throws CommandDispatcherException {
         if (!this.node.equals(this.node)) {
             throw new IllegalArgumentException(member.getName());

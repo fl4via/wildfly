@@ -221,6 +221,11 @@ public class InfinispanBeanManager<I, T> implements BeanManager<I, T, Transactio
 
     private void cancel(Bean<I, T> bean) {
         if (this.dispatcher != null) {
+            final Node node = locatePrimaryOwner(bean.getId());
+            if (dispatcher.isLocal(node)) {
+                scheduler.cancel(bean.getId());
+                return;
+            }
             try {
                 this.executeOnPrimaryOwner(bean, new CancelSchedulerCommand<>(bean));
             } catch (Exception e) {
@@ -229,8 +234,13 @@ public class InfinispanBeanManager<I, T> implements BeanManager<I, T, Transactio
         }
     }
 
-    void schedule(Bean<I, T> bean) {
+    private void schedule(Bean<I, T> bean) {
         if (this.dispatcher != null) {
+            final Node node = locatePrimaryOwner(bean.getId());
+            if (dispatcher.isLocal(node)) {
+                scheduler.schedule(bean.getId());
+                return;
+            }
             try {
                 this.executeOnPrimaryOwner(bean, new ScheduleSchedulerCommand<>(bean));
             } catch (Exception e) {
@@ -277,7 +287,7 @@ public class InfinispanBeanManager<I, T> implements BeanManager<I, T, Transactio
             InfinispanEjbLogger.ROOT_LOGGER.debugf("Could not find bean %s", id);
             return null;
         }
-        this.cancel(bean);
+        this.schedule(bean);
         return new SchedulableBean(bean);
     }
 
@@ -407,13 +417,17 @@ public class InfinispanBeanManager<I, T> implements BeanManager<I, T, Transactio
 
         @Override
         public boolean release() {
+            schedule(bean);
             return this.bean.release();
         }
 
         @Override
         public void close() {
             this.bean.close();
-            if (this.bean.isValid()) {
+            if (!this.bean.isValid()) {
+                InfinispanBeanManager.this.cancel(this.bean);
+            }
+            else {
                 InfinispanBeanManager.this.schedule(this.bean);
             }
         }
