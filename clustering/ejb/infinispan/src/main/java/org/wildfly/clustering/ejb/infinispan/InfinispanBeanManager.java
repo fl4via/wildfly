@@ -286,7 +286,6 @@ public class InfinispanBeanManager<I, T> implements BeanManager<I, T, Transactio
             InfinispanEjbLogger.ROOT_LOGGER.debugf("Could not find bean %s", id);
             return null;
         }
-        this.schedule(bean);
         return new SchedulableBean(bean);
     }
 
