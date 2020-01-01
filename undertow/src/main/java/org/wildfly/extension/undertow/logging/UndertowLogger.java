@@ -29,6 +29,7 @@ import static org.jboss.logging.Logger.Level.WARN;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
 
 import org.jboss.as.controller.OperationFailedException;
@@ -419,4 +420,12 @@ public interface UndertowLogger extends BasicLogger {
 
     @Message(id = 104, value = "Some classes referenced by annotation: %s in class: %s are missing.")
     DeploymentUnitProcessingException missingClassInAnnotation(String anCls, String resCls);
+
+    @LogMessage(level = ERROR)
+    @Message(id = 105, value = "Unable to generate obfuscated session route from '%s'")
+    void unableToObfuscateSessionRoute(String route, @Cause NoSuchAlgorithmException e);
+
+    @LogMessage(level = INFO)
+    @Message(id = 106, value = "Generated obfuscated session route '%s' from '%s'")
+    void obfuscatedSessionRoute(String obfuscatedRoute, String route);
 }

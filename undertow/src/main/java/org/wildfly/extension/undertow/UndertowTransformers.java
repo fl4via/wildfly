@@ -27,6 +27,7 @@ import static org.wildfly.extension.undertow.ApplicationSecurityDomainDefinition
 import static org.wildfly.extension.undertow.ApplicationSecurityDomainDefinition.INTEGRATED_JASPI;
 import static org.wildfly.extension.undertow.ApplicationSecurityDomainDefinition.SECURITY_DOMAIN;
 import static org.wildfly.extension.undertow.Constants.ENABLE_HTTP2;
+import static org.wildfly.extension.undertow.Constants.OBFUSCATE_SESSION_ROUTE;
 import static org.wildfly.extension.undertow.HostDefinition.QUEUE_REQUESTS_ON_START;
 import static org.wildfly.extension.undertow.HttpListenerResourceDefinition.CERTIFICATE_FORWARDING;
 import static org.wildfly.extension.undertow.HttpListenerResourceDefinition.HTTP2_HEADER_TABLE_SIZE;
@@ -76,6 +77,7 @@ import org.wildfly.extension.undertow.filters.SingleAffinityResourceDefinition;
 
 /**
  * @author Tomaz Cerar (c) 2016 Red Hat Inc.
+ * @author Flavia Rainone
  */
 public class UndertowTransformers implements ExtensionTransformerRegistration {
     private static ModelVersion MODEL_VERSION_EAP7_0_0 = ModelVersion.create(3, 1, 0);
@@ -118,6 +120,9 @@ public class UndertowTransformers implements ExtensionTransformerRegistration {
     }
 
     private static void registerTransformersWildFly16(ResourceTransformationDescriptionBuilder subsystemBuilder) {
+        subsystemBuilder.getAttributeBuilder().addRejectCheck(RejectAttributeChecker.DEFINED, OBFUSCATE_SESSION_ROUTE)
+                .setDiscard(DiscardAttributeChecker.DEFAULT_VALUE, OBFUSCATE_SESSION_ROUTE)
+                .end();
         subsystemBuilder
                 .addChildResource(UndertowExtension.SERVER_PATH)
                 .addChildResource(UndertowExtension.HOST_PATH)
@@ -125,6 +130,10 @@ public class UndertowTransformers implements ExtensionTransformerRegistration {
     }
 
     private static void registerTransformers_EAP_7_2_0(ResourceTransformationDescriptionBuilder subsystemBuilder) {
+        subsystemBuilder.getAttributeBuilder().addRejectCheck(RejectAttributeChecker.DEFINED, OBFUSCATE_SESSION_ROUTE)
+                .setDiscard(DiscardAttributeChecker.DEFAULT_VALUE, OBFUSCATE_SESSION_ROUTE)
+                .end();
+
         subsystemBuilder
                 .addChildResource(UndertowExtension.PATH_APPLICATION_SECURITY_DOMAIN)
                 .getAttributeBuilder()
@@ -150,6 +159,9 @@ public class UndertowTransformers implements ExtensionTransformerRegistration {
     private static void registerTransformers_EAP_7_1_0(ResourceTransformationDescriptionBuilder subsystemBuilder) {
         final ResourceTransformationDescriptionBuilder serverBuilder = subsystemBuilder.addChildResource(UndertowExtension.SERVER_PATH);
         final ResourceTransformationDescriptionBuilder hostBuilder = serverBuilder.addChildResource(UndertowExtension.HOST_PATH);
+        subsystemBuilder.getAttributeBuilder().addRejectCheck(RejectAttributeChecker.DEFINED, OBFUSCATE_SESSION_ROUTE)
+                .setDiscard(DiscardAttributeChecker.DEFAULT_VALUE, OBFUSCATE_SESSION_ROUTE)
+                .end();
         subsystemBuilder
                 .addChildResource(UndertowExtension.PATH_APPLICATION_SECURITY_DOMAIN)
                 .getAttributeBuilder()
@@ -193,6 +205,9 @@ public class UndertowTransformers implements ExtensionTransformerRegistration {
     }
 
     private static void registerTransformers_EAP_7_0_0(ResourceTransformationDescriptionBuilder subsystemBuilder) {
+        subsystemBuilder.getAttributeBuilder().addRejectCheck(RejectAttributeChecker.DEFINED, OBFUSCATE_SESSION_ROUTE)
+                .setDiscard(DiscardAttributeChecker.DEFAULT_VALUE, OBFUSCATE_SESSION_ROUTE)
+                .end();
         final ResourceTransformationDescriptionBuilder serverBuilder = subsystemBuilder.addChildResource(UndertowExtension.SERVER_PATH);
         final ResourceTransformationDescriptionBuilder hostBuilder = serverBuilder.addChildResource(UndertowExtension.HOST_PATH);
 
