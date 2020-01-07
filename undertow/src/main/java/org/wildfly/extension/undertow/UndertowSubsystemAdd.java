@@ -98,6 +98,7 @@ class UndertowSubsystemAdd extends AbstractBoottimeAddStepHandler {
         final String defaultContainer = UndertowRootDefinition.DEFAULT_SERVLET_CONTAINER.resolveModelAttribute(context, model).asString();
         final String defaultServer = UndertowRootDefinition.DEFAULT_SERVER.resolveModelAttribute(context, model).asString();
         final boolean stats = UndertowRootDefinition.STATISTICS_ENABLED.resolveModelAttribute(context, model).asBoolean();
+        final boolean activeReqStats = UndertowRootDefinition.ACTIVE_REQUEST_STATISTICS_ENABLED.resolveModelAttribute(context, model).asBoolean();
         final String defaultSecurityDomain = UndertowRootDefinition.DEFAULT_SECURITY_DOMAIN.resolveModelAttribute(context, model).asString();
 
         final ModelNode instanceIdModel = UndertowRootDefinition.INSTANCE_ID.resolveModelAttribute(context, model);
@@ -107,7 +108,7 @@ class UndertowSubsystemAdd extends AbstractBoottimeAddStepHandler {
         DefaultDeploymentMappingProvider.instance().clear();//we clear provider on system boot, as on reload it could cause issues.
 
         context.getCapabilityServiceTarget().addCapability(UndertowRootDefinition.UNDERTOW_CAPABILITY)
-                .setInstance(new UndertowService(defaultContainer, defaultServer, defaultVirtualHost, instanceId, stats))
+                .setInstance(new UndertowService(defaultContainer, defaultServer, defaultVirtualHost, instanceId, stats, activeReqStats))
                 .setInitialMode(ServiceController.Mode.ACTIVE)
                 .addAliases(UndertowService.UNDERTOW)
                 .install();

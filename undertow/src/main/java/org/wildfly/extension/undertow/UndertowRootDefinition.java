@@ -42,6 +42,7 @@ import org.jboss.as.controller.SimpleResourceDefinition;
 import org.jboss.as.controller.access.management.SensitiveTargetAccessConstraintDefinition;
 import org.jboss.as.controller.capability.RuntimeCapability;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.as.controller.registry.Resource;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 import org.jboss.dmr.ValueExpression;
@@ -49,6 +50,7 @@ import org.jboss.msc.service.ServiceController;
 import org.jboss.security.SecurityConstants;
 import org.wildfly.extension.undertow.filters.FilterDefinitions;
 import org.wildfly.extension.undertow.handlers.HandlerDefinitions;
+import org.wildfly.extension.undertow.logging.UndertowLogger;
 
 /**
  * @author <a href="mailto:tomaz.cerar@redhat.com">Tomaz Cerar</a> (c) 2012 Red Hat Inc.
@@ -94,6 +96,13 @@ class UndertowRootDefinition extends PersistentResourceDefinition {
                     .setAllowExpression(true)
                     .setDefaultValue(ModelNode.FALSE)
                     .build();
+    protected static final SimpleAttributeDefinition ACTIVE_REQUEST_STATISTICS_ENABLED =
+            new SimpleAttributeDefinitionBuilder(Constants.ACTIVE_REQUEST_STATISTICS_ENABLED, ModelType.BOOLEAN, true)
+                    .setRestartAllServices()
+                    .setAllowExpression(true)
+                    .setDefaultValue(ModelNode.FALSE)
+                    .setRequires(Constants.STATISTICS_ENABLED)
+                    .build();
     protected static final SimpleAttributeDefinition DEFAULT_SECURITY_DOMAIN =
             new SimpleAttributeDefinitionBuilder(Constants.DEFAULT_SECURITY_DOMAIN, ModelType.STRING, true)
                     .setAllowExpression(true)
@@ -137,35 +146,60 @@ class UndertowRootDefinition extends PersistentResourceDefinition {
     @Override
     public void registerAttributes(ManagementResourceRegistration resourceRegistration) {
         ReloadRequiredWriteAttributeHandler handler = new ReloadRequiredWriteAttributeHandler(getAttributes());
-        for (AttributeDefinition attr : getAttributes()) {
-            if (attr == STATISTICS_ENABLED) {
-                resourceRegistration.registerReadWriteAttribute(attr, null, new AbstractWriteAttributeHandler<Void>(STATISTICS_ENABLED) {
-                    @Override
-                    protected boolean applyUpdateToRuntime(OperationContext context, ModelNode operation, String attributeName, ModelNode resolvedValue, ModelNode currentValue, HandbackHolder<Void> handbackHolder) throws OperationFailedException {
-                        ServiceController<?> controller = context.getServiceRegistry(false).getService(UndertowService.UNDERTOW);
-                        if (controller != null) {
-                            UndertowService service = (UndertowService) controller.getService();
-                            if (service != null) {
-                                service.setStatisticsEnabled(resolvedValue.asBoolean());
-                            }
-                        }
-                        return false;
-                    }
-
-                    @Override
-                    protected void revertUpdateToRuntime(OperationContext context, ModelNode operation, String attributeName, ModelNode valueToRestore, ModelNode valueToRevert, Void handback) throws OperationFailedException {
-                        ServiceController<?> controller = context.getServiceRegistry(false).getService(UndertowService.UNDERTOW);
-                        if (controller != null) {
-                            UndertowService service = (UndertowService) controller.getService();
-                            if (service != null) {
-                                service.setStatisticsEnabled(valueToRestore.asBoolean());
-                            }
-                        }
-                    }
-                });
-            } else {
-                resourceRegistration.registerReadWriteAttribute(attr, null, handler);
+        resourceRegistration.registerReadWriteAttribute(STATISTICS_ENABLED, null, new AbstractWriteAttributeHandler<Void>(STATISTICS_ENABLED) {
+            @Override
+            protected boolean applyUpdateToRuntime(OperationContext context, ModelNode operation, String attributeName, ModelNode resolvedValue, ModelNode currentValue, HandbackHolder<Void> handbackHolder) throws OperationFailedException {
+                UndertowService service = getUndertowService(context);
+                if (service != null) {
+                    service.setStatisticsEnabled(resolvedValue.asBoolean());
+                }
+                return false;
             }
+
+            @Override
+            protected void revertUpdateToRuntime(OperationContext context, ModelNode operation, String attributeName, ModelNode valueToRestore, ModelNode valueToRevert, Void handback) throws OperationFailedException {
+                UndertowService service = getUndertowService(context);
+                if (service != null) {
+                    service.setStatisticsEnabled(valueToRestore.asBoolean());
+                }
+            }
+        });
+        resourceRegistration.registerReadWriteAttribute(ACTIVE_REQUEST_STATISTICS_ENABLED, null, new AbstractWriteAttributeHandler<Void>(ACTIVE_REQUEST_STATISTICS_ENABLED) {
+            @Override
+            protected void validateUpdatedModel(final OperationContext context, final Resource model) throws OperationFailedException {
+                final ModelNode modelNode = model.getModel();
+                if (ACTIVE_REQUEST_STATISTICS_ENABLED.resolveModelAttribute(context, modelNode).asBoolean()
+                        && !STATISTICS_ENABLED.resolveModelAttribute(context,model.getModel()).asBoolean())
+                    throw UndertowLogger.ROOT_LOGGER.activeRequestsStatisticsRequiresStatisticsEnabled();
+            }
+            @Override
+            protected boolean applyUpdateToRuntime(OperationContext context, ModelNode operation, String attributeName, ModelNode resolvedValue, ModelNode currentValue, HandbackHolder<Void> handbackHolder) throws OperationFailedException {
+
+                UndertowService service = getUndertowService(context);
+                if (service != null) {
+                    service.setActiveRequestStatisticsEnabled(resolvedValue.asBoolean());
+                }
+                return false;
+            }
+
+            @Override
+            protected void revertUpdateToRuntime(OperationContext context, ModelNode operation, String attributeName, ModelNode valueToRestore, ModelNode valueToRevert, Void handback) throws OperationFailedException {
+                UndertowService service = getUndertowService(context);
+                if (service != null) {
+                    service.setActiveRequestStatisticsEnabled(valueToRestore.asBoolean());
+                }
+            }
+        });
+        for (AttributeDefinition attr : getAttributes()) {
+            if (attr != STATISTICS_ENABLED && attr != ACTIVE_REQUEST_STATISTICS_ENABLED)
+                resourceRegistration.registerReadWriteAttribute(attr, null, handler);
         }
+    }
+
+    private static final UndertowService getUndertowService(OperationContext context) {
+        ServiceController<?> controller = context.getServiceRegistry(false).getService(UndertowService.UNDERTOW);
+        if (controller != null)
+            return (UndertowService) controller.getService();
+        return null;
     }
 }

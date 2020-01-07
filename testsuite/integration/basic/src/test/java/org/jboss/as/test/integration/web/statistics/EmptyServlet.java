@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2013, Red Hat, Inc., and individual contributors
+ * Copyright (c) 2020, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -19,15 +19,26 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.wildfly.mod_cluster.undertow;
+package org.jboss.as.test.integration.web.statistics;
 
-import org.wildfly.extension.undertow.Server;
-import org.wildfly.extension.undertow.UndertowService;
+import java.io.IOException;
+import java.io.Writer;
 
-public class TestUndertowService extends UndertowService {
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
-    public TestUndertowService(String defaultContainer, String defaultServer, String defaultVirtualHost, String instanceId, Server server) {
-        super(defaultContainer, defaultServer, defaultVirtualHost, instanceId, true, true);
-        this.registerServer(server);
+/**
+ * @author Flavia Rainone
+ */
+@WebServlet(name = "EmptyServlet", urlPatterns = { "/empty" })
+public class EmptyServlet extends HttpServlet {
+
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        Writer writer = resp.getWriter();
+        writer.write("empty");
     }
 }

@@ -22,9 +22,33 @@
 
 package org.wildfly.extension.undertow;
 
+import org.jboss.as.controller.ModelVersion;
+import org.jboss.as.controller.PathAddress;
+import org.jboss.as.controller.PathElement;
+import org.jboss.as.controller.transform.ExtensionTransformerRegistration;
+import org.jboss.as.controller.transform.SubsystemTransformerRegistration;
+import org.jboss.as.controller.transform.TransformationContext;
+import org.jboss.as.controller.transform.description.AttributeConverter;
+import org.jboss.as.controller.transform.description.AttributeConverter.DefaultValueAttributeConverter;
+import org.jboss.as.controller.transform.description.AttributeTransformationDescriptionBuilder;
+import org.jboss.as.controller.transform.description.ChainedTransformationDescriptionBuilder;
+import org.jboss.as.controller.transform.description.DiscardAttributeChecker;
+import org.jboss.as.controller.transform.description.DiscardAttributeChecker.DiscardAttributeValueChecker;
+import org.jboss.as.controller.transform.description.RejectAttributeChecker;
+import org.jboss.as.controller.transform.description.RejectAttributeChecker.SimpleRejectAttributeChecker;
+import org.jboss.as.controller.transform.description.ResourceTransformationDescriptionBuilder;
+import org.jboss.as.controller.transform.description.TransformationDescriptionBuilder;
+import org.jboss.dmr.ModelNode;
+
+import org.wildfly.extension.undertow.filters.ModClusterDefinition;
+import org.wildfly.extension.undertow.filters.NoAffinityResourceDefinition;
+import org.wildfly.extension.undertow.filters.RankedAffinityResourceDefinition;
+import org.wildfly.extension.undertow.filters.SingleAffinityResourceDefinition;
+
 import static org.wildfly.extension.undertow.ApplicationSecurityDomainDefinition.ENABLE_JASPI;
 import static org.wildfly.extension.undertow.ApplicationSecurityDomainDefinition.INTEGRATED_JASPI;
 import static org.wildfly.extension.undertow.ApplicationSecurityDomainDefinition.SECURITY_DOMAIN;
+import static org.wildfly.extension.undertow.Constants.ACTIVE_REQUEST_STATISTICS_ENABLED;
 import static org.wildfly.extension.undertow.Constants.ENABLE_HTTP2;
 import static org.wildfly.extension.undertow.HostDefinition.QUEUE_REQUESTS_ON_START;
 import static org.wildfly.extension.undertow.HttpListenerResourceDefinition.CERTIFICATE_FORWARDING;
@@ -50,28 +74,6 @@ import static org.wildfly.extension.undertow.filters.ModClusterDefinition.FAILOV
 import static org.wildfly.extension.undertow.filters.ModClusterDefinition.MAX_AJP_PACKET_SIZE;
 import static org.wildfly.extension.undertow.handlers.ReverseProxyHandler.CONNECTIONS_PER_THREAD;
 import static org.wildfly.extension.undertow.handlers.ReverseProxyHandler.MAX_RETRIES;
-
-import org.jboss.as.controller.ModelVersion;
-import org.jboss.as.controller.PathAddress;
-import org.jboss.as.controller.PathElement;
-import org.jboss.as.controller.transform.ExtensionTransformerRegistration;
-import org.jboss.as.controller.transform.SubsystemTransformerRegistration;
-import org.jboss.as.controller.transform.TransformationContext;
-import org.jboss.as.controller.transform.description.AttributeConverter;
-import org.jboss.as.controller.transform.description.AttributeConverter.DefaultValueAttributeConverter;
-import org.jboss.as.controller.transform.description.AttributeTransformationDescriptionBuilder;
-import org.jboss.as.controller.transform.description.ChainedTransformationDescriptionBuilder;
-import org.jboss.as.controller.transform.description.DiscardAttributeChecker;
-import org.jboss.as.controller.transform.description.DiscardAttributeChecker.DiscardAttributeValueChecker;
-import org.jboss.as.controller.transform.description.RejectAttributeChecker;
-import org.jboss.as.controller.transform.description.RejectAttributeChecker.SimpleRejectAttributeChecker;
-import org.jboss.as.controller.transform.description.ResourceTransformationDescriptionBuilder;
-import org.jboss.as.controller.transform.description.TransformationDescriptionBuilder;
-import org.jboss.dmr.ModelNode;
-import org.wildfly.extension.undertow.filters.ModClusterDefinition;
-import org.wildfly.extension.undertow.filters.NoAffinityResourceDefinition;
-import org.wildfly.extension.undertow.filters.RankedAffinityResourceDefinition;
-import org.wildfly.extension.undertow.filters.SingleAffinityResourceDefinition;
 
 
 /**
@@ -107,9 +109,17 @@ public class UndertowTransformers implements ExtensionTransformerRegistration {
                 .addChildResource(UndertowExtension.SERVER_PATH)
                 .addChildResource(UndertowExtension.HOST_PATH)
                 .rejectChildResource(ConsoleAccessLogDefinition.INSTANCE.getPathElement());
+        subsystemBuilder.getAttributeBuilder()
+                .setDiscard(new DiscardAttributeChecker.DiscardAttributeValueChecker(false, true, ModelNode.FALSE), ACTIVE_REQUEST_STATISTICS_ENABLED)
+                .addRejectCheck(RejectAttributeChecker.DEFINED, ACTIVE_REQUEST_STATISTICS_ENABLED)
+                .end();
     }
 
     private static void registerTransformers_EAP_7_2_0(ResourceTransformationDescriptionBuilder subsystemBuilder) {
+        subsystemBuilder.getAttributeBuilder()
+                .setDiscard(new DiscardAttributeChecker.DiscardAttributeValueChecker(false, true, ModelNode.FALSE), ACTIVE_REQUEST_STATISTICS_ENABLED)
+                .addRejectCheck(RejectAttributeChecker.DEFINED, ACTIVE_REQUEST_STATISTICS_ENABLED)
+                .end();
         subsystemBuilder
                 .addChildResource(UndertowExtension.PATH_APPLICATION_SECURITY_DOMAIN)
                 .getAttributeBuilder()
@@ -135,6 +145,12 @@ public class UndertowTransformers implements ExtensionTransformerRegistration {
     private static void registerTransformers_EAP_7_1_0(ResourceTransformationDescriptionBuilder subsystemBuilder) {
         final ResourceTransformationDescriptionBuilder serverBuilder = subsystemBuilder.addChildResource(UndertowExtension.SERVER_PATH);
         final ResourceTransformationDescriptionBuilder hostBuilder = serverBuilder.addChildResource(UndertowExtension.HOST_PATH);
+
+        subsystemBuilder.getAttributeBuilder()
+                .setDiscard(new DiscardAttributeChecker.DiscardAttributeValueChecker(false, true, ModelNode.FALSE), ACTIVE_REQUEST_STATISTICS_ENABLED)
+                .addRejectCheck(RejectAttributeChecker.DEFINED, ACTIVE_REQUEST_STATISTICS_ENABLED)
+                .end();
+
         subsystemBuilder
                 .addChildResource(UndertowExtension.PATH_APPLICATION_SECURITY_DOMAIN)
                 .getAttributeBuilder()
@@ -182,6 +198,11 @@ public class UndertowTransformers implements ExtensionTransformerRegistration {
     private static void registerTransformers_EAP_7_0_0(ResourceTransformationDescriptionBuilder subsystemBuilder) {
         final ResourceTransformationDescriptionBuilder serverBuilder = subsystemBuilder.addChildResource(UndertowExtension.SERVER_PATH);
         final ResourceTransformationDescriptionBuilder hostBuilder = serverBuilder.addChildResource(UndertowExtension.HOST_PATH);
+
+        subsystemBuilder.getAttributeBuilder()
+                .setDiscard(new DiscardAttributeChecker.DiscardAttributeValueChecker(false, true, ModelNode.FALSE), ACTIVE_REQUEST_STATISTICS_ENABLED)
+                .addRejectCheck(RejectAttributeChecker.DEFINED, ACTIVE_REQUEST_STATISTICS_ENABLED)
+                .end();
 
         // Version 4.0.0 adds the new SSL_CONTEXT attribute, however it is mutually exclusive to the SECURITY_REALM attribute, both of which can
         // now be set to 'undefined' so instead of rejecting a defined SSL_CONTEXT, reject an undefined SECURITY_REALM as that covers the

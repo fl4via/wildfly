@@ -22,11 +22,6 @@
 
 package org.wildfly.extension.undertow;
 
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.NAME;
-import static org.jboss.as.controller.registry.AttributeAccess.Flag.COUNTER_METRIC;
-import static org.wildfly.extension.undertow.Capabilities.REF_IO_WORKER;
-import static org.wildfly.extension.undertow.Capabilities.REF_SOCKET_BINDING;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -36,11 +31,11 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
-import io.undertow.UndertowOptions;
-import io.undertow.server.ConnectorStatistics;
 import org.jboss.as.controller.AbstractWriteAttributeHandler;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.ModelVersion;
+import org.jboss.as.controller.ObjectListAttributeDefinition;
+import org.jboss.as.controller.ObjectTypeAttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
@@ -65,8 +60,17 @@ import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
+
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.NAME;
+import static org.jboss.as.controller.registry.AttributeAccess.Flag.COUNTER_METRIC;
+
+import io.undertow.UndertowOptions;
+import io.undertow.server.ConnectorStatistics;
 import org.wildfly.extension.io.OptionAttributeDefinition;
 import org.xnio.Options;
+
+import static org.wildfly.extension.undertow.Capabilities.REF_IO_WORKER;
+import static org.wildfly.extension.undertow.Capabilities.REF_SOCKET_BINDING;
 
 /**
  * @author Tomaz Cerar
@@ -222,6 +226,56 @@ abstract class ListenerResourceDefinition extends PersistentResourceDefinition {
         }
     }
 
+    public static final AttributeDefinition ACTIVE_REQUEST_BYTES_RECEIVED =
+            new SimpleAttributeDefinitionBuilder("bytes-received", ModelType.LONG)
+                    .setUndefinedMetricValue(ModelNode.ZERO_LONG)
+                    .setFlags(COUNTER_METRIC)
+                    .setStorageRuntime().build();
+    public static final AttributeDefinition ACTIVE_REQUEST_CONTENT_LENGTH =
+            new SimpleAttributeDefinitionBuilder("content-length", ModelType.LONG)
+                    .setUndefinedMetricValue(ModelNode.ZERO_LONG)
+                    .setFlags(COUNTER_METRIC)
+                    .setStorageRuntime().build();
+    public static final AttributeDefinition ACTIVE_REQUEST_CURRENT_URI =
+            new SimpleAttributeDefinitionBuilder("current-uri", ModelType.STRING)
+                    .setFlags(COUNTER_METRIC)
+                    .setStorageRuntime().build();
+    public static final AttributeDefinition ACTIVE_REQUEST_CURRENT_QUERY =
+            new SimpleAttributeDefinitionBuilder("current-query", ModelType.STRING)
+                    .setFlags(COUNTER_METRIC)
+                    .setStorageRuntime().build();
+    public static final AttributeDefinition ACTIVE_REQUEST_METHOD =
+            new SimpleAttributeDefinitionBuilder("method", ModelType.STRING)
+                    .setFlags(COUNTER_METRIC)
+                    .setStorageRuntime().build();
+    public static final AttributeDefinition ACTIVE_REQUEST_PROCESSING_TIME =
+            new SimpleAttributeDefinitionBuilder("processing-time", ModelType.STRING)
+                    .setFlags(COUNTER_METRIC)
+                    .setStorageRuntime().build();
+    public static final AttributeDefinition ACTIVE_REQUEST_PROTOCOL =
+            new SimpleAttributeDefinitionBuilder("protocol", ModelType.STRING)
+                    .setFlags(COUNTER_METRIC)
+                    .setStorageRuntime().build();
+    public static final AttributeDefinition ACTIVE_REQUEST_HOST_NAME =
+            new SimpleAttributeDefinitionBuilder("host-name", ModelType.STRING)
+                    .setFlags(COUNTER_METRIC)
+                    .setStorageRuntime().build();
+    public static final AttributeDefinition ACTIVE_REQUEST_HOST_PORT =
+            new SimpleAttributeDefinitionBuilder("host-port", ModelType.INT)
+                    .setDefaultValue(ModelNode.ZERO)
+                    .setFlags(COUNTER_METRIC)
+                    .setStorageRuntime().build();
+
+
+    static final ObjectTypeAttributeDefinition ACTIVE_REQUEST = ObjectTypeAttributeDefinition.Builder.of(
+            "active-request", ACTIVE_REQUEST_BYTES_RECEIVED, ACTIVE_REQUEST_CONTENT_LENGTH, ACTIVE_REQUEST_CURRENT_QUERY,
+            ACTIVE_REQUEST_CURRENT_URI, ACTIVE_REQUEST_METHOD, ACTIVE_REQUEST_PROCESSING_TIME, ACTIVE_REQUEST_PROTOCOL,
+            ACTIVE_REQUEST_HOST_NAME, ACTIVE_REQUEST_HOST_PORT).build();
+    public static final ObjectListAttributeDefinition ACTIVE_REQUESTS = ObjectListAttributeDefinition.Builder.of(
+            "active-requests", ACTIVE_REQUEST)
+            .setResourceOnly().setFlags(AttributeAccess.Flag.STORAGE_RUNTIME, COUNTER_METRIC).build();
+
+
     protected static final Collection<AttributeDefinition> ATTRIBUTES;
     private static final List<AccessConstraintDefinition> CONSTRAINTS = Collections.singletonList(UndertowExtension.LISTENER_CONSTRAINT);
 
@@ -234,7 +288,9 @@ abstract class ListenerResourceDefinition extends PersistentResourceDefinition {
     static final List<OptionAttributeDefinition> SOCKET_OPTIONS = Arrays.asList(BACKLOG, RECEIVE_BUFFER, SEND_BUFFER, KEEP_ALIVE, READ_TIMEOUT, WRITE_TIMEOUT, MAX_CONNECTIONS);
 
     static {
-        ATTRIBUTES = new LinkedHashSet<>(Arrays.asList(SOCKET_BINDING, WORKER, BUFFER_POOL, ENABLED, RESOLVE_PEER_ADDRESS, DISALLOWED_METHODS, SECURE));
+        ATTRIBUTES = new LinkedHashSet<>(
+                Arrays.asList(SOCKET_BINDING, WORKER, BUFFER_POOL, ENABLED,
+                        RESOLVE_PEER_ADDRESS, DISALLOWED_METHODS, SECURE));
         ATTRIBUTES.addAll(LISTENER_OPTIONS);
         ATTRIBUTES.addAll(SOCKET_OPTIONS);
     }
@@ -254,6 +310,7 @@ abstract class ListenerResourceDefinition extends PersistentResourceDefinition {
         super.registerAddOperation(resourceRegistration, getAddHandler(), OperationEntry.Flag.RESTART_NONE);
         super.registerRemoveOperation(resourceRegistration, new ListenerRemoveHandler(getAddHandler()), OperationEntry.Flag.RESTART_NONE);
         resourceRegistration.registerOperationHandler(ResetConnectorStatisticsHandler.DEFINITION, ResetConnectorStatisticsHandler.INSTANCE);
+        resourceRegistration.registerOperationHandler(ActiveRequestListHandler.DEFINITION, ActiveRequestListHandler.INSTANCE);
     }
 
     @Override
@@ -271,6 +328,7 @@ abstract class ListenerResourceDefinition extends PersistentResourceDefinition {
         for(ConnectorStat attr : ConnectorStat.values()) {
             resourceRegistration.registerMetric(attr.definition, ReadStatisticHandler.INSTANCE);
         }
+        resourceRegistration.registerMetric(ACTIVE_REQUESTS, ActiveRequestListHandler.INSTANCE);
     }
 
     @Override

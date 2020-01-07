@@ -223,6 +223,7 @@ public interface Constants {
     String CRAWLER_SESSION_MANAGEMENT = "crawler-session-management";
     String MAX_AJP_PACKET_SIZE = "max-ajp-packet-size";
     String STATISTICS_ENABLED = "statistics-enabled";
+    String ACTIVE_REQUEST_STATISTICS_ENABLED = "active-request-statistics-enabled";
     String DEFAULT_SECURITY_DOMAIN = "default-security-domain";
     String DISABLE_FILE_WATCH_SERVICE = "disable-file-watch-service";
     String DISABLE_SESSION_ID_REUSE = "disable-session-id-reuse";
@@ -273,4 +274,7 @@ public interface Constants {
     String DIRECT = "direct";
     String LEAK_DETECTION_PERCENT = "leak-detection-percent";
     String BYTE_BUFFER_POOL = "byte-buffer-pool";
+
+    // stats attributes
+    String NUMBER_OF_REQUESTS = "number-of-requests";
 }

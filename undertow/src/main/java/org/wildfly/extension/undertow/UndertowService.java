@@ -85,14 +85,17 @@ public class UndertowService implements Service<UndertowService> {
     private final List<UndertowEventListener> listeners = Collections.synchronizedList(new LinkedList<UndertowEventListener>());
     private final String instanceId;
     private volatile boolean statisticsEnabled;
+    private volatile boolean activeRequestStatisticsEnabled;
     private final Set<Consumer<Boolean>> statisticsChangeListenters = new HashSet<>();
+    private final Set<Consumer<Boolean>> activeRequestStatisticsChangeListenters = new HashSet<>();
 
-    protected UndertowService(String defaultContainer, String defaultServer, String defaultVirtualHost, String instanceId, boolean statisticsEnabled) {
+    protected UndertowService(String defaultContainer, String defaultServer, String defaultVirtualHost, String instanceId, boolean statisticsEnabled, boolean activeRequestStatisticsEnabled) {
         this.defaultContainer = defaultContainer;
         this.defaultServer = defaultServer;
         this.defaultVirtualHost = defaultVirtualHost;
         this.instanceId = instanceId;
         this.statisticsEnabled = statisticsEnabled;
+        this.activeRequestStatisticsEnabled = activeRequestStatisticsEnabled;
     }
 
     public static ServiceName deploymentServiceName(ServiceName deploymentServiceName) {
@@ -259,12 +262,31 @@ public class UndertowService implements Service<UndertowService> {
         }
     }
 
+    public boolean isActiveRequestStatisticsEnabled() {
+        return activeRequestStatisticsEnabled;
+    }
+
+    public synchronized void setActiveRequestStatisticsEnabled(boolean statisticsEnabled) {
+        this.activeRequestStatisticsEnabled = statisticsEnabled;
+        for(Consumer<Boolean> listener: activeRequestStatisticsChangeListenters) {
+            listener.accept(statisticsEnabled);
+        }
+    }
+
     public synchronized void registerStatisticsListener(Consumer<Boolean> listener) {
         statisticsChangeListenters.add(listener);
     }
 
     public synchronized void unregisterStatisticsListener(Consumer<Boolean> listener) {
         statisticsChangeListenters.remove(listener);
+    }
+
+    public synchronized void registerActiveRequestStatisticsListener(Consumer<Boolean> listener) {
+        activeRequestStatisticsChangeListenters.add(listener);
+    }
+
+    public synchronized void unregisterActiveRequestStatisticsListener(Consumer<Boolean> listener) {
+        activeRequestStatisticsChangeListenters.remove(listener);
     }
 
     /**

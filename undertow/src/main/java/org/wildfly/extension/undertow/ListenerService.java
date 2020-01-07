@@ -87,6 +87,7 @@ public abstract class ListenerService implements Service<UndertowListener>, Unde
     private volatile boolean enabled;
     private volatile boolean started;
     private Consumer<Boolean> statisticsChangeListener;
+    private Consumer<Boolean> activeRequestStatisticsChangeListener;
     private final boolean proxyProtocol;
     private volatile HandlerWrapper stoppingWrapper;
 
@@ -218,6 +219,13 @@ public abstract class ListenerService implements Service<UndertowListener>, Unde
             openListener.setUndertowOptions(builder.getMap());
         };
         getUndertowService().registerStatisticsListener(statisticsChangeListener);
+        activeRequestStatisticsChangeListener = (enabled) -> {
+            OptionMap options = openListener.getUndertowOptions();
+            OptionMap.Builder builder = OptionMap.builder().addAll(options);
+            builder.set(UndertowOptions.ENABLE_ACTIVE_REQUEST_STATISTICS, enabled);
+            openListener.setUndertowOptions(builder.getMap());
+        };
+        getUndertowService().registerActiveRequestStatisticsListener(activeRequestStatisticsChangeListener);
         final ServiceContainer container = context.getController().getServiceContainer();
         this.stoppingWrapper = new HandlerWrapper() {
             @Override
@@ -252,6 +260,8 @@ public abstract class ListenerService implements Service<UndertowListener>, Unde
         unregisterBinding();
         getUndertowService().unregisterStatisticsListener(statisticsChangeListener);
         statisticsChangeListener = null;
+        getUndertowService().unregisterStatisticsListener(activeRequestStatisticsChangeListener);
+        activeRequestStatisticsChangeListener = null;
         listenerHandlerWrappers.remove(stoppingWrapper);
         stoppingWrapper = null;
     }

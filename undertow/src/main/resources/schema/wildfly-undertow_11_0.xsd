@@ -52,6 +52,11 @@
             <xs:documentation>Whether statistics are to be gathered for undertow subsystem.</xs:documentation>
           </xs:annotation>
         </xs:attribute>
+        <xs:attribute name="active-request-statistics-enabled" type="xs:boolean" default="false">
+            <xs:annotation>
+                <xs:documentation>Whether detailed statistics for each active request are to be gathered for undertow subsystem.</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
     </xs:complexType>
     <xs:complexType name="serverType">
         <xs:sequence>
