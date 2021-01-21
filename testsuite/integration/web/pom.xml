@@ -91,6 +91,11 @@
             <artifactId>jboss-websocket-api_1.1_spec</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.wildfly</groupId>
+            <artifactId>wildfly-undertow</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
