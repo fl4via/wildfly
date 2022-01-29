@@ -26,6 +26,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 
@@ -34,11 +35,19 @@ import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.as.arquillian.api.ContainerResource;
+import org.jboss.byteman.contrib.bmunit.BMRunnerUtil;
+import org.jboss.byteman.contrib.bmunit.BMScript;
+import org.jboss.byteman.contrib.bmunit.BMUnit;
+import org.jboss.byteman.contrib.bmunit.BMUnitConfig;
+import org.jboss.byteman.contrib.bmunit.BMUnitConfigState;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.EmptyAsset;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
+
+import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -49,6 +58,8 @@ import org.junit.runner.RunWith;
  * @author Stuart Douglas, Ondrej Chaloupka
  */
 @RunWith(Arquillian.class)
+@BMUnitConfig(loadDirectory="target/test-classes")
+@BMScript(value="trace-cancellation-source.btm")
 public class AsyncMethodTestCase {
     private static final String ARCHIVE_NAME = "AsyncTestCase";
     private static final Integer WAIT_TIME_S = 10;
@@ -71,6 +82,26 @@ public class AsyncMethodTestCase {
     protected <T> T lookup(Class<T> beanType) throws NamingException {
         return beanType.cast(iniCtx.lookup("java:global/" + ARCHIVE_NAME + "/" + beanType.getSimpleName() + "!"
                 + beanType.getName()));
+    }
+
+    @BeforeClass
+    public static void beforeClass() throws Exception {
+        BMUnitConfigState.pushConfigurationState(
+                AsyncMethodTestCase.class.getAnnotation(BMUnitConfig.class)
+                , AsyncMethodTestCase.class);
+        BMUnit.loadScriptFile(
+                AsyncMethodTestCase.class
+                , BMRunnerUtil.computeBMScriptName(AsyncMethodTestCase.class.getAnnotation(BMScript.class).value())
+                , BMRunnerUtil.normaliseLoadDirectory(AsyncMethodTestCase.class.getAnnotation(BMScript.class)));
+    }
+
+
+    @AfterClass
+    public static void afterClass() throws Exception {
+        BMUnit.unloadScriptFile(
+                AsyncMethodTestCase.class
+                , BMRunnerUtil.computeBMScriptName(AsyncMethodTestCase.class.getAnnotation(BMScript.class).value()));
+        BMUnitConfigState.popConfigurationState(AsyncMethodTestCase.class);
     }
 
     /**

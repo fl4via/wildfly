@@ -1,0 +1,17 @@
+RULE receiving server cancel request (requires org.jboss.byteman.debug property)
+CLASS org.jboss.ejb.protocol.remote.EJBClientChannel$MethodInvocation
+METHOD handleResponse
+AT INVOKE org.jboss.ejb.client.EJBReceiverInvocationContext.requestCancelled
+IF TRUE
+DO
+    debug("received cancel response from server")
+ENDRULE
+
+RULE receiving local cancel request
+CLASS org.jboss.ejb.client.EJBClientInvocationContext$FutureResponse
+METHOD cancel
+AFTER INVOKE cancelInvocation
+IF TRUE
+DO
+    (new Exception("invocation is being cancelled locally")).printStackTrace()
+ENDRULE
