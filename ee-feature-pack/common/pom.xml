@@ -3685,7 +3685,7 @@
 
         <dependency>
             <groupId>org.wildfly</groupId>
-            <artifactId>wildfly-naming-client</artifactId>
+            <artifactId>wildfly-naming-client-jakarta</artifactId>
             <exclusions>
                 <exclusion>
                     <groupId>*</groupId>
